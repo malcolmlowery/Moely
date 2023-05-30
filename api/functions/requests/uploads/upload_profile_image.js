@@ -41,12 +41,63 @@ exports.uploadProfileImage = async (req, res) => {
                     if(error) throw error
                 });
 
-                await getAuth().updateUser(uid, { photoURL: image_url })
-                    .catch(() => { throw { message: 'An error occurred updating your profile. Please try again.' }});
+                const user = getFirestore().collection('users').doc(uid);
+                const posts = getFirestore().collection('posts')
+                    .where('owner.uid', '==', uid);
+                const comments = getFirestore().collection('comments')
+                    .where('owner.uid', '==', uid);
+                const post_likes = getFirestore().collection('post_likes')
+                    .where('owner.uid', '==', uid);
 
-                await getFirestore().collection('users')
-                    .doc(uid).set({ profile_image: image_url}, { merge: true })
-                    .catch(() => { throw { message: 'An error occurred updating your profile. Please try again.' }});
+                const user_exists = (await user.get()).exists
+                
+                const number_of_posts = await posts.count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
+
+                const number_of_comments = await comments.count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
+
+                const number_of_post_likes = await post_likes.count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
+
+                const batch = getFirestore().batch();
+
+                if(user_exists) {
+                    batch.set(user, { profile_image: image_url }, { merge: true });
+                };
+
+                if(number_of_posts > 0) {
+                    await posts.get().then(snapshot => {
+                        snapshot.forEach(doc => {
+                            batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
+                        });
+                    });
+                };
+
+                if(number_of_comments > 0) {
+                    await comments.get().then(snapshot => {
+                        snapshot.forEach(doc => {
+                            batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
+                        });
+                    });
+                };
+
+                if(number_of_post_likes > 0) {
+                    await post_likes.get().then(snapshot => {
+                        snapshot.forEach(doc => {
+                            batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
+                        });
+                    });
+                };
+
+                await batch.commit()
+                    .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
+
+                await getAuth().updateUser(uid, { photoURL: image_url })
+                    .catch(error => { throw error });
 
                 resolve();
             })
@@ -56,6 +107,68 @@ exports.uploadProfileImage = async (req, res) => {
         .catch((error) => {
             res.status(500).send({ error });
         })
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
+exports.deleteProfileImage = async (req, res) => {
+    const local_uid = res.locals.uid;
+    const uid = req.body.uid;
+
+    try {
+        const batch = getFirestore().batch();
+
+        const user = await getFirestore().collection('users').doc(uid);
+        const user_posts = getFirestore().collection('posts')
+            .where('owner.uid', '==', uid);
+        const user_liked_posts = getFirestore().collection('post_likes')
+            .where('owner.uid', '==', uid);
+        const user_comments = getFirestore().collection('comments')
+            .where('owner.uid', '==', uid);
+
+        const user_exists = (await user.get()).exists;
+            
+        const total_user_posts = (await user_posts.count().get()).data().count;
+        const total_liked_posts = (await user_liked_posts.count().get()).data().count;
+        const total_user_comments = (await user_comments.count().get()).data().count;
+        
+        if(user_exists) {
+            batch.set(user, { profile_image: null }, { merge: true });
+        }
+
+        if(total_user_posts > 0) {
+            await user_posts.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
+                });
+            });
+        };
+
+        if(total_liked_posts > 0) {
+            await user_liked_posts.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
+                });
+            });
+        };
+
+        if(total_user_comments > 0) {
+            await user_comments.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { profile_image: null }, { merge: true });
+                });
+            });
+        };
+
+        await batch.commit()
+            .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
+
+        await getAuth().updateUser(uid, { photoURL: null })
+            .catch(error => { throw error });
+
+        res.status(200).send({ message: 'Profile image deleted.' });
+
     } catch(error) {
         res.status(500).send(error);
     };

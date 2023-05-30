@@ -9,7 +9,7 @@ const {
     getFirestore,
 } = require('../../modules');
 
-exports.uploadBannerImage = async (req, res) => {
+exports.uploadCoverPhoto = async (req, res) => {
     try {
         const image_name = randomUUID();
         const form = new formidable.IncomingForm();
@@ -17,7 +17,7 @@ exports.uploadBannerImage = async (req, res) => {
         return new Promise((resolve, reject) => {
             form.parse(req, async (err, fields, files) => {
                 const uid = fields.uid;
-                const file = files.banner_image;
+                const file = files.cover_photo_image;
 
                 if(!file) {
                     reject("No file to upload, please choose a image.")
@@ -32,17 +32,17 @@ exports.uploadBannerImage = async (req, res) => {
                     .toFormat('jpeg', { mozjpeg: true })
                     .toFile(tmpFilePath);
 
-                await bucket.upload(tmpFilePath, { destination: `banner_images/${image_name}.jpeg`});
-                await bucket.file(`banner_images/${image_name}.jpeg`).makePublic();
-                const image_url = await bucket.file(`banner_images/${image_name}.jpeg`).publicUrl();
+                await bucket.upload(tmpFilePath, { destination: `cover_photo/${image_name}.jpeg`});
+                await bucket.file(`cover_photo/${image_name}.jpeg`).makePublic();
+                const image_url = await bucket.file(`cover_photo/${image_name}.jpeg`).publicUrl();
 
                 await unlink(tmpFilePath, (error) => {
                     if(error) throw error
                 });
 
                 await getFirestore().collection('users')
-                    .doc(uid).set({ banner_image: image_url }, { merge: true })
-                    .catch(() => { throw { message: 'An error occurred updating your profile. Please try again.' }});
+                    .doc(uid).set({ cover_photo: image_url }, { merge: true })
+                    .catch(() => { throw Error('There was an error attempting to update your cover photo. Please try again.') });
 
                 resolve();
             })
@@ -56,4 +56,21 @@ exports.uploadBannerImage = async (req, res) => {
     } catch(error) {
         res.status(500).send(error)
     };
+};
+
+exports.deleteCoverPhoto = async (req, res) => {
+    const local_uid = res.locals.uid;
+    const uid = req.body.uid;
+
+    try {
+        await getFirestore().collection('users').doc(uid)
+            .get().then(snapshot => {
+                snapshot.ref.set({ cover_photo: null }, { merge: true })
+            }).catch(() => { throw Error('There was an error attempting to delete your cover photo. Please try again.') })
+
+        res.status(200).send({ message: 'Photo cover cover removed.' })
+
+    } catch(error) {
+        res.status(500).send(error)
+    }
 };

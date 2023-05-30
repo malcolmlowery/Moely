@@ -1,13 +1,19 @@
-const { initializeApp } = require('./modules');
+const { initializeApp, getFirestore } = require('./modules');
 const { authGuard } = require('./middleware/auth-guard');
-const { createUser } = require('./requests/createUser');
-const { uploadBannerImage } = require('./requests/uploads/upload_banner_image');
-const { uploadProfileImage } = require('./requests/uploads/upload_profile_image');
+const { createUser, updateUserProfile } = require('./requests/user/user');
+const { uploadProfileImage, deleteProfileImage } = require('./requests/uploads/upload_profile_image');
+const { uploadCoverPhoto, deleteCoverPhoto } = require('./requests/uploads/upload_cover_photo');
+const { createPost } = require('./requests/post/post');
 
 initializeApp();
+getFirestore().settings({ ignoreUndefinedProperties: true })
 
 exports.api = {
     createUser,
+    updateUserProfile: authGuard(updateUserProfile),
     uploadProfileImage: authGuard(uploadProfileImage),
-    uploadBannerImage: authGuard(uploadBannerImage),
+    deleteProfileImage: authGuard(deleteProfileImage),
+    uploadCoverPhoto: authGuard(uploadCoverPhoto),
+    deleteCoverPhoto: authGuard(deleteCoverPhoto),
+    createPost: authGuard(createPost),
 };

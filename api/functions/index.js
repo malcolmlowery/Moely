@@ -5,6 +5,7 @@ const { uploadProfileImage, deleteProfileImage } = require('./requests/uploads/u
 const { uploadCoverPhoto, deleteCoverPhoto } = require('./requests/uploads/upload_cover_photo');
 const { createPost, getPost, updatePost, deletePost } = require('./requests/post/post');
 const { hidePost, unhidePost } = require('./requests/post/hide_post');
+const { reportPost } = require('./requests/post/report_post');
 const { createComment, updateComment, deleteComment } = require('./requests/comment/comment');
 
 initializeApp();
@@ -27,6 +28,7 @@ exports.api = {
     deletePost: authGuard(deletePost),
     hidePost: authGuard(hidePost),
     unhidePost: authGuard(unhidePost),
+    reportPost: authGuard(reportPost),
 
     createComment: authGuard(createComment),
     updateComment: authGuard(updateComment),

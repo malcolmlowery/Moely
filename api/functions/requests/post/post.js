@@ -51,6 +51,7 @@ exports.deletePost = async (req, res) => {
     try {
 
         const post = getFirestore().collection('posts').doc(post_id);
+        const hidden_post = getFirestore().collection('hidden_posts').doc(post_id);
         const post_comments = getFirestore().collection('comments')
             .where('post_id_ref', '==', post_id);
         const post_likes = getFirestore().collection('post_likes')
@@ -59,6 +60,7 @@ exports.deletePost = async (req, res) => {
         const batch = getFirestore().batch();
 
         batch.delete(post);
+        batch.delete(hidden_post);
 
         await post_comments.get().then(snapshot => {
             snapshot.forEach(doc => {
@@ -77,6 +79,22 @@ exports.deletePost = async (req, res) => {
 
         res.status(200).send({ message: 'Post deleted!' });
             
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
+exports.getPost = async (req, res) => {
+    const { post_id } = req.body;
+
+    try {
+
+        const post = await getFirestore().collection('posts').doc(post_id)
+            .get().then(doc => doc.data())
+            .catch(() => { throw 'There was an error creating your profile. Please try again.' });
+
+        res.status(200).send(post);
+
     } catch(error) {
         res.status(500).send(error);
     };

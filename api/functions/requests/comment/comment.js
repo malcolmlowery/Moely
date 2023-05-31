@@ -54,8 +54,15 @@ exports.updateComment = async (req, res) => {
 
     try {
 
-        await getFirestore().collection('comments').doc(comment_id)
-            .set({ text, comment_edited: true }, { merge: true })
+        const comment = getFirestore().collection('comments').doc(comment_id);
+        const comment_exists = await (await comment.get()).exists;
+
+        if(!comment_exists) {
+            res.status(400).send({ message: 'Operation not allowed.', warning: true });
+            return;
+        };
+
+        await comment.set({ text, comment_edited: true }, { merge: true })
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         res.status(200).send({ message: 'Comment updated!', text, comment_edited: true });
@@ -66,11 +73,25 @@ exports.updateComment = async (req, res) => {
 };
 
 exports.deleteComment = async (req, res) => {
-    const { comment_id } = req.body;
+    const { comment_id, post_id } = req.body;
 
     try {
 
-        await getFirestore().collection('comments').doc(comment_id).delete()
+        const comment = getFirestore().collection('comments').doc(comment_id);
+        const comment_exists = await (await comment.get()).exists;
+
+        const post = getFirestore().collection('posts').doc(post_id);
+        const post_exists = await (await post.get()).exists;
+
+        if(!comment_exists || !post_exists) {
+            res.status(400).send({ message: 'Operation not allowed.', warning: true });
+            return;
+        };
+
+        await comment.delete()
+            .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+        await post.set({ total_comments: FieldValue.increment(-1) }, { merge: true })
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         res.status(200).send({ message: 'Comment deleted!' });

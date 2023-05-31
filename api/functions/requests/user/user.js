@@ -18,6 +18,24 @@ exports.createUser = functions.https.onRequest(async (req, res) => {
     };
 });
 
+exports.getUserProfile = async (req, res) => {
+    const { user_profile_uid } = req.body;
+
+    try {
+
+        const { username, profile_image, cover_photo, location, occupation, bio } = await getFirestore().collection('users').doc(user_profile_uid)
+            .get().then(doc => doc.data())
+            .catch(() => { throw 'There was an error creating your profile. Please try again.' });
+
+        const user = { username, profile_image, cover_photo, location, occupation, bio };
+
+        res.status(200).send(user);
+
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
 exports.updateUserProfile = async (req, res) => {
     const local_uid = res.locals.uid;
     const { username, email, bio, location, occupation } = req.body;

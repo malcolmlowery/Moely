@@ -11,13 +11,14 @@ const {
 } = require('../../modules');
 
 exports.uploadProfileImage = async (req, res) => {
+    const local_uid = res.locals.uid;
+    
     try {
         const image_name = randomUUID();
         const form = new formidable.IncomingForm();
 
         return new Promise((resolve, reject) => {
             form.parse(req, async (err, fields, files) => {
-                const uid = fields.uid;
                 const file = files.profile_image;
                 
                 if(!file) {
@@ -41,13 +42,13 @@ exports.uploadProfileImage = async (req, res) => {
                     if(error) throw error
                 });
 
-                const user = getFirestore().collection('users').doc(uid);
+                const user = getFirestore().collection('users').doc(local_uid);
                 const posts = getFirestore().collection('posts')
-                    .where('owner.uid', '==', uid);
+                    .where('owner.uid', '==', local_uid);
                 const comments = getFirestore().collection('comments')
-                    .where('owner.uid', '==', uid);
+                    .where('owner.uid', '==', local_uid);
                 const post_likes = getFirestore().collection('post_likes')
-                    .where('owner.uid', '==', uid);
+                    .where('owner.uid', '==', local_uid);
 
                 const user_exists = (await user.get()).exists
                 
@@ -96,7 +97,7 @@ exports.uploadProfileImage = async (req, res) => {
                 await batch.commit()
                     .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
-                await getAuth().updateUser(uid, { photoURL: image_url })
+                await getAuth().updateUser(local_uid, { photoURL: image_url })
                     .catch(error => { throw error });
 
                 resolve();
@@ -114,18 +115,17 @@ exports.uploadProfileImage = async (req, res) => {
 
 exports.deleteProfileImage = async (req, res) => {
     const local_uid = res.locals.uid;
-    const uid = req.body.uid;
 
     try {
         const batch = getFirestore().batch();
 
-        const user = await getFirestore().collection('users').doc(uid);
+        const user = await getFirestore().collection('users').doc(local_uid);
         const user_posts = getFirestore().collection('posts')
-            .where('owner.uid', '==', uid);
+            .where('owner.uid', '==', local_uid);
         const user_liked_posts = getFirestore().collection('post_likes')
-            .where('owner.uid', '==', uid);
+            .where('owner.uid', '==', local_uid);
         const user_comments = getFirestore().collection('comments')
-            .where('owner.uid', '==', uid);
+            .where('owner.uid', '==', local_uid);
 
         const user_exists = (await user.get()).exists;
             
@@ -156,7 +156,7 @@ exports.deleteProfileImage = async (req, res) => {
         if(total_user_comments > 0) {
             await user_comments.get().then(snapshot => {
                 snapshot.forEach(doc => {
-                    batch.set(doc.ref, { profile_image: null }, { merge: true });
+                    batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
                 });
             });
         };
@@ -164,7 +164,7 @@ exports.deleteProfileImage = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
-        await getAuth().updateUser(uid, { photoURL: null })
+        await getAuth().updateUser(local_uid, { photoURL: null })
             .catch(error => { throw error });
 
         res.status(200).send({ message: 'Profile image deleted.' });

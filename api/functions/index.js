@@ -3,7 +3,8 @@ const { authGuard } = require('./middleware/auth-guard');
 const { createUser, updateUserProfile } = require('./requests/user/user');
 const { uploadProfileImage, deleteProfileImage } = require('./requests/uploads/upload_profile_image');
 const { uploadCoverPhoto, deleteCoverPhoto } = require('./requests/uploads/upload_cover_photo');
-const { createPost } = require('./requests/post/post');
+const { createPost, updatePost, deletePost } = require('./requests/post/post');
+const { createComment, updateComment, deleteComment } = require('./requests/comment/comment');
 
 initializeApp();
 getFirestore().settings({ ignoreUndefinedProperties: true })
@@ -16,4 +17,9 @@ exports.api = {
     uploadCoverPhoto: authGuard(uploadCoverPhoto),
     deleteCoverPhoto: authGuard(deleteCoverPhoto),
     createPost: authGuard(createPost),
+    updatePost: authGuard(updatePost),
+    deletePost: authGuard(deletePost),
+    createComment: authGuard(createComment),
+    updateComment: authGuard(updateComment),
+    deleteComment: authGuard(deleteComment),
 };

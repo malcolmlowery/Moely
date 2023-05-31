@@ -7,5 +7,8 @@ exports.authGuard = (endpoint) => functions.https.onRequest(async (req ,res) => 
         res.status(403).send({ message: 'Your request to this endpoint is unauthorized.' })
         return
     };
+
+    res.locals.uid = 'pvBCB2OfwxvOylzyhPAF'
+
     return endpoint(req, res);
 });

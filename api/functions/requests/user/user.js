@@ -20,15 +20,15 @@ exports.createUser = functions.https.onRequest(async (req, res) => {
 
 exports.updateUserProfile = async (req, res) => {
     const local_uid = res.locals.uid;
-    const { uid, username, email, bio, location, occupation } = req.body;
+    const { username, email, bio, location, occupation } = req.body;
 
-    const user = getFirestore().collection('users').doc(uid);
+    const user = getFirestore().collection('users').doc(local_uid);
     const posts = getFirestore().collection('posts')
-        .where('owner.uid', '==', uid);
+        .where('owner.uid', '==', local_uid);
     const comments = getFirestore().collection('comments')
-        .where('owner.uid', '==', uid);
+        .where('owner.uid', '==', local_uid);
     const post_likes = getFirestore().collection('post_likes')
-        .where('owner.uid', '==', uid);
+        .where('owner.uid', '==', local_uid);
 
     // Add transaction for updating user data in the notifications collection
 
@@ -79,7 +79,7 @@ exports.updateUserProfile = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
-        await getAuth().updateUser(uid, { displayName: username, email })
+        await getAuth().updateUser(local_uid, { displayName: username, email })
             .catch(error => { throw error });
 
 

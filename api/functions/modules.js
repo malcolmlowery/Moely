@@ -1,7 +1,7 @@
 const functions = require('firebase-functions');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { getFirestore, Timestamp } = require('firebase-admin/firestore');
+const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { Storage } = require('@google-cloud/storage');
 const formidable = require('formidable-serverless');
@@ -16,6 +16,7 @@ module.exports = {
     getAuth,
     getFirestore,
     Timestamp,
+    FieldValue,
     getStorage,
     bucket,
     formidable,

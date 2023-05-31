@@ -10,6 +10,8 @@ const {
 } = require('../../modules');
 
 exports.uploadCoverPhoto = async (req, res) => {
+    const local_uid = res.locals.uid;
+    
     try {
         const image_name = randomUUID();
         const form = new formidable.IncomingForm();
@@ -40,8 +42,8 @@ exports.uploadCoverPhoto = async (req, res) => {
                     if(error) throw error
                 });
 
-                await getFirestore().collection('users')
-                    .doc(uid).set({ cover_photo: image_url }, { merge: true })
+                await getFirestore().collection('users').doc(local_uid)
+                    .set({ cover_photo: image_url }, { merge: true })
                     .catch(() => { throw Error('There was an error attempting to update your cover photo. Please try again.') });
 
                 resolve();
@@ -60,17 +62,16 @@ exports.uploadCoverPhoto = async (req, res) => {
 
 exports.deleteCoverPhoto = async (req, res) => {
     const local_uid = res.locals.uid;
-    const uid = req.body.uid;
 
     try {
-        await getFirestore().collection('users').doc(uid)
-            .get().then(snapshot => {
-                snapshot.ref.set({ cover_photo: null }, { merge: true })
-            }).catch(() => { throw Error('There was an error attempting to delete your cover photo. Please try again.') })
 
-        res.status(200).send({ message: 'Photo cover cover removed.' })
+        await getFirestore().collection('users').doc(local_uid)
+            .set({ cover_photo: null }, { merge: true })
+            .catch(() => { throw Error('There was an error attempting to delete your cover photo. Please try again.') });
+
+        res.status(200).send({ message: 'Photo cover removed.' });
 
     } catch(error) {
-        res.status(500).send(error)
+        res.status(500).send(error);
     }
-};
+};;

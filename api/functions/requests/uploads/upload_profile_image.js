@@ -47,8 +47,8 @@ exports.uploadProfileImage = async (req, res) => {
                     .where('owner.uid', '==', local_uid);
                 const comments = getFirestore().collection('comments')
                     .where('owner.uid', '==', local_uid);
-                const post_likes = getFirestore().collection('post_likes')
-                    .where('owner.uid', '==', local_uid);
+                const post_likes = getFirestore().collection('liked_posts')
+                    .where('user_uids', 'array-contains', local_uid);
 
                 const user_exists = (await user.get()).exists
                 
@@ -89,7 +89,8 @@ exports.uploadProfileImage = async (req, res) => {
                 if(number_of_post_likes > 0) {
                     await post_likes.get().then(snapshot => {
                         snapshot.forEach(doc => {
-                            batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
+                            const doc_ref = doc.ref.collection('users').doc(local_uid);
+                            batch.set(doc_ref, { profile_image: image_url }, { merge: true });
                         });
                     });
                 };

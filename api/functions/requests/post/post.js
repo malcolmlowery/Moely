@@ -52,27 +52,22 @@ exports.deletePost = async (req, res) => {
 
         const post = getFirestore().collection('posts').doc(post_id);
         const hidden_post = getFirestore().collection('hidden_posts').doc(post_id);
-        const post_comments = getFirestore().collection('comments')
-            .where('post_id_ref', '==', post_id);
-        const post_likes = getFirestore().collection('post_likes')
-            .where('post_id_ref', '==', post_id);
+        const liked_post = getFirestore().collection('liked_posts').doc(post_id)
+        const post_comments = getFirestore().collection('comments').doc(post_id)
 
         const batch = getFirestore().batch();
 
-        batch.delete(post);
-        batch.delete(hidden_post);
+        await liked_post.collection('users').get()
+            .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
+            .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-        await post_comments.get().then(snapshot => {
-            snapshot.forEach(doc => {
-                batch.delete(doc.ref)
-            })
-        })
-        
-        await post_likes.get().then(snapshot => {
-            snapshot.forEach(doc => {
-                batch.delete(doc.ref)
-            })
-        })
+        await post_comments.collection('users').get()
+            .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
+            .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+        batch.delete(post);
+        batch.delete(liked_post)
+        batch.delete(hidden_post);
 
         await batch.commit()
             .catch(() => { throw Error('There was an error deleting your post. Please try again.') });

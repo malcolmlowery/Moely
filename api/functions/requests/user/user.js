@@ -45,8 +45,8 @@ exports.updateUserProfile = async (req, res) => {
         .where('owner.uid', '==', local_uid);
     const comments = getFirestore().collection('comments')
         .where('owner.uid', '==', local_uid);
-    const post_likes = getFirestore().collection('post_likes')
-        .where('owner.uid', '==', local_uid);
+    const post_likes = getFirestore().collection('liked_posts')
+        .where('user_uids', 'array-contains', local_uid);
 
     // Add transaction for updating user data in the notifications collection
 
@@ -60,10 +60,10 @@ exports.updateUserProfile = async (req, res) => {
             .then(value => value.data().count)
             .catch(error => { throw error });
 
-        const number_of_post_likes = await post_likes.count().get()
-            .then(value => value.data().count)
+        const number_of_post_likes = await post_likes.get()
+            .then(snapshot => snapshot.size)
             .catch(error => { throw error });
-
+            
         const batch = getFirestore().batch();
         
         if(user_exists) {
@@ -89,7 +89,8 @@ exports.updateUserProfile = async (req, res) => {
         if(number_of_post_likes > 0) {
             await post_likes.get().then(snapshot => {
                 snapshot.forEach(doc => {
-                    batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });
+                    const doc_ref = doc.ref.collection('users').doc(local_uid);
+                    batch.set(doc_ref, { username, occupation }, { merge: true });
                 });
             });
         };

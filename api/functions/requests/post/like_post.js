@@ -26,9 +26,11 @@ exports.likePost = async (req, res) => {
 
             await liked_post.collection('users').doc(local_uid).create({ 
                 liked_at: Timestamp.now().seconds,
-                uid,
-                username, 
-                profile_image, 
+                owner: {
+                    uid,
+                    username, 
+                    profile_image,
+                },
             }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
             await post.set({ total_likes: FieldValue.increment(1) }, { merge: true })

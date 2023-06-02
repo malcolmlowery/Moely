@@ -43,24 +43,18 @@ exports.uploadProfileImage = async (req, res) => {
                 });
 
                 const user = getFirestore().collection('users').doc(local_uid);
+                const user_in_subcollections = getFirestore().collectionGroup('users')
+                    .where('owner.uid', '==', local_uid);
                 const posts = getFirestore().collection('posts')
                     .where('owner.uid', '==', local_uid);
-                const comments = getFirestore().collection('comments')
-                    .where('owner.uid', '==', local_uid);
-                const post_likes = getFirestore().collection('liked_posts')
-                    .where('user_uids', 'array-contains', local_uid);
 
                 const user_exists = (await user.get()).exists
                 
                 const number_of_posts = await posts.count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
-
-                const number_of_comments = await comments.count().get()
-                    .then(value => value.data().count)
-                    .catch(error => { throw error });
-
-                const number_of_post_likes = await post_likes.count().get()
+                
+                const user_in_subcollections_count = await user_in_subcollections.count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
 
@@ -78,19 +72,10 @@ exports.uploadProfileImage = async (req, res) => {
                     });
                 };
 
-                if(number_of_comments > 0) {
-                    await comments.get().then(snapshot => {
+                if(user_in_subcollections_count > 0) {
+                    await user_in_subcollections.get().then(snapshot => {
                         snapshot.forEach(doc => {
                             batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
-                        });
-                    });
-                };
-
-                if(number_of_post_likes > 0) {
-                    await post_likes.get().then(snapshot => {
-                        snapshot.forEach(doc => {
-                            const doc_ref = doc.ref.collection('users').doc(local_uid);
-                            batch.set(doc_ref, { profile_image: image_url }, { merge: true });
                         });
                     });
                 };
@@ -121,24 +106,24 @@ exports.deleteProfileImage = async (req, res) => {
         const batch = getFirestore().batch();
 
         const user = await getFirestore().collection('users').doc(local_uid);
+        const user_in_subcollections = getFirestore().collectionGroup('users')
+            .where('owner.uid', '==', local_uid);
         const user_posts = getFirestore().collection('posts')
-            .where('owner.uid', '==', local_uid);
-        const user_liked_posts = getFirestore().collection('post_likes')
-            .where('owner.uid', '==', local_uid);
-        const user_comments = getFirestore().collection('comments')
             .where('owner.uid', '==', local_uid);
 
         const user_exists = (await user.get()).exists;
             
-        const total_user_posts = (await user_posts.count().get()).data().count;
-        const total_liked_posts = (await user_liked_posts.count().get()).data().count;
-        const total_user_comments = (await user_comments.count().get()).data().count;
+        const number_of_posts = (await user_posts.count().get()).data().count;
+
+        const user_in_subcollections_count = await user_in_subcollections.count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
         
         if(user_exists) {
             batch.set(user, { profile_image: null }, { merge: true });
         }
 
-        if(total_user_posts > 0) {
+        if(number_of_posts > 0) {
             await user_posts.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
@@ -146,18 +131,10 @@ exports.deleteProfileImage = async (req, res) => {
             });
         };
 
-        if(total_liked_posts > 0) {
-            await user_liked_posts.get().then(snapshot => {
+        if(user_in_subcollections_count > 0) {
+            await user_in_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
-                    batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
-                });
-            });
-        };
-
-        if(total_user_comments > 0) {
-            await user_comments.get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    batch.set(doc.ref, { owner: { profile_image: null } }, { merge: true });
+                    batch.set(doc.ref, { owner: { profile_image: null }}, { merge: true });
                 });
             });
         };

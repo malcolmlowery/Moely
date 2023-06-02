@@ -5,17 +5,26 @@ exports.createComment = async (req, res) => {
     const { text, post_id } = req.body;
 
     try {
-        const comment_id = getFirestore().collection('comments').doc().id;
 
-        const { username, occupation, profile_image } = await getFirestore().collection('users').doc(local_uid)
-            .get().then(snapshot => snapshot.data())
+        const comment_doc = getFirestore().collection('comments').doc(post_id);
+        const user_info_doc = getFirestore().collection(`comments/${post_id}/users`).doc();
+        const post = getFirestore().collection('posts').doc(post_id);
+
+        const post_exists = (await post.get()).exists;
+
+
+        if(!post_exists) {
+            res.status(400).send({ message: 'Operation not allowed.', warning: true });
+            return;
+        };
+
+        const { username, profile_image, occupation } = await getFirestore().collection('users').doc(local_uid)
+            .get().then(doc => doc.data())
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
-        const comment = {
+        const new_comment = {
+            comment_id: user_info_doc.id,
             created_at: Timestamp.now().seconds,
-            post_id_ref: post_id,
-            comment_id,
-            comment_edited: false,
             text,
             total_likes: 0,
             owner: {
@@ -26,23 +35,16 @@ exports.createComment = async (req, res) => {
             },
         };
 
-        const post_exists = await getFirestore().collection('posts').doc(post_id)
-            .get().then(doc => doc.exists);
+        const batch = getFirestore().batch();
 
-        if(!post_exists) {
-            res.status(400).send({ message: 'This post is no longer available', post_deleted: true });
-        }
+        batch.set(comment_doc, { post_id_ref: post_id, user_uids: FieldValue.arrayUnion(local_uid) }, { merge: true });
+        batch.create(user_info_doc, new_comment);
+        batch.set(post, { total_comments: FieldValue.increment(1) }, { merge: true });
 
-        await getFirestore().collection('comments').doc(comment_id)
-            .create(comment).catch(() => { throw Error('An internal error occurred. Please try again') });
+        await batch.commit()
+            .catch(() => { throw Error('An internal error occurred. Please try again') });
 
-        await getFirestore().collection('posts').doc(post_id)
-            .get().then(async (doc) => {
-                if(!doc.exists) return;
-                await doc.ref.set({ total_comments: FieldValue.increment(1) }, { merge: true });
-            }).catch(() => { throw Error('An internal error occurred. Please try again') });
-
-        res.status(200).send({ message: 'Comment created!', comment });
+        res.status(200).send({ message: 'Comment created!', comment: new_comment });
 
     } catch(error) {
         res.status(500).send(error);
@@ -50,19 +52,22 @@ exports.createComment = async (req, res) => {
 };
 
 exports.updateComment = async (req, res) => {
-    const { comment_id, text } = req.body;
+    const { comment_id, post_id, text } = req.body;
 
     try {
 
-        const comment = getFirestore().collection('comments').doc(comment_id);
-        const comment_exists = await (await comment.get()).exists;
+        const comment = getFirestore().collection('comments').doc(post_id);
+        const user_comment_doc = comment.collection('users').doc(comment_id);
 
-        if(!comment_exists) {
+        const comment_exists = await (await comment.get()).exists;
+        const user_comment_doc_exists = (await user_comment_doc.get()).exists;
+
+        if(!comment_exists || !user_comment_doc_exists) {
             res.status(400).send({ message: 'Operation not allowed.', warning: true });
             return;
         };
 
-        await comment.set({ text, comment_edited: true }, { merge: true })
+        await user_comment_doc.set({ text, comment_edited: true }, { merge: true })
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         res.status(200).send({ message: 'Comment updated!', text, comment_edited: true });
@@ -77,7 +82,7 @@ exports.deleteComment = async (req, res) => {
 
     try {
 
-        const comment = getFirestore().collection('comments').doc(comment_id);
+        const comment = getFirestore().collection('comments').doc(post_id);
         const comment_exists = await (await comment.get()).exists;
 
         const post = getFirestore().collection('posts').doc(post_id);
@@ -88,7 +93,7 @@ exports.deleteComment = async (req, res) => {
             return;
         };
 
-        await comment.delete()
+        await comment.collection('users').doc(comment_id).delete()
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         await post.set({ total_comments: FieldValue.increment(-1) }, { merge: true })

@@ -41,12 +41,10 @@ exports.updateUserProfile = async (req, res) => {
     const { username, email, bio, location, occupation } = req.body;
 
     const user = getFirestore().collection('users').doc(local_uid);
+    const user_in_subcollections = getFirestore().collectionGroup('users')
+        .where('owner.uid', '==', local_uid);
     const posts = getFirestore().collection('posts')
         .where('owner.uid', '==', local_uid);
-    const comments = getFirestore().collection('comments')
-        .where('owner.uid', '==', local_uid);
-    const post_likes = getFirestore().collection('liked_posts')
-        .where('user_uids', 'array-contains', local_uid);
 
     // Add transaction for updating user data in the notifications collection
 
@@ -56,12 +54,8 @@ exports.updateUserProfile = async (req, res) => {
             .then(value => value.data().count)
             .catch(error => { throw error });
 
-        const number_of_comments = await comments.count().get()
+        const user_in_subcollections_count = await user_in_subcollections.count().get()
             .then(value => value.data().count)
-            .catch(error => { throw error });
-
-        const number_of_post_likes = await post_likes.get()
-            .then(snapshot => snapshot.size)
             .catch(error => { throw error });
             
         const batch = getFirestore().batch();
@@ -78,19 +72,10 @@ exports.updateUserProfile = async (req, res) => {
             });
         };
 
-        if(number_of_comments > 0) {
-            await comments.get().then(snapshot => {
+        if(user_in_subcollections_count > 0) {
+            await user_in_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });
-                });
-            });
-        };
-
-        if(number_of_post_likes > 0) {
-            await post_likes.get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    const doc_ref = doc.ref.collection('users').doc(local_uid);
-                    batch.set(doc_ref, { username, occupation }, { merge: true });
                 });
             });
         };

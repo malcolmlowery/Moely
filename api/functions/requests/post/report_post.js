@@ -19,10 +19,10 @@ exports.reportPost = async (req, res) => {
         };
        
         await reported_post.set({ 
-            reported_at: Timestamp.now().seconds,
             post_id_ref: post_id, 
-            user_uids: FieldValue.arrayUnion(local_uid),
+            reported_at: Timestamp.now().seconds,
             reported_total: FieldValue.increment(1),
+            user_uids: FieldValue.arrayUnion(local_uid),
         }, { merge: true })
         .catch(() => { throw 'There was an error performing request. Please try again.' });
 

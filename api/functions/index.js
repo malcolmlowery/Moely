@@ -8,6 +8,7 @@ const { likePost } = require('./requests/post/like_post');
 const { hidePost, unhidePost } = require('./requests/post/hide_post');
 const { reportPost } = require('./requests/post/report_post');
 const { createComment, updateComment, deleteComment } = require('./requests/comment/comment');
+const { likeComment } = require('./requests/comment/like_comment');
 
 initializeApp();
 getFirestore().settings({ ignoreUndefinedProperties: true })
@@ -35,4 +36,5 @@ exports.api = {
     createComment: authGuard(createComment),
     updateComment: authGuard(updateComment),
     deleteComment: authGuard(deleteComment),
+    likeComment: authGuard(likeComment),
 };

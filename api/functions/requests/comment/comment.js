@@ -83,6 +83,9 @@ exports.deleteComment = async (req, res) => {
     try {
 
         const comment = getFirestore().collection('comments').doc(post_id);
+        const user_comment = comment.collection('users').doc(comment_id)
+        const comment_likes = comment.collection('liked_comments')
+            .where('comment_id_ref', '==', comment_id);
         const comment_exists = await (await comment.get()).exists;
 
         const post = getFirestore().collection('posts').doc(post_id);
@@ -93,10 +96,15 @@ exports.deleteComment = async (req, res) => {
             return;
         };
 
-        await comment.collection('users').doc(comment_id).delete()
-            .catch(() => { throw Error('An internal error occurred. Please try again') });
+        const batch = getFirestore().batch();
+        
+        await comment_likes.get().then(snapshot => {
+            snapshot.forEach(doc => batch.delete(doc.ref))
+        });
+        batch.delete(user_comment);
+        batch.set(post, { total_comments: FieldValue.increment(-1) }, { merge: true })
 
-        await post.set({ total_comments: FieldValue.increment(-1) }, { merge: true })
+        await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         res.status(200).send({ message: 'Comment deleted!' });

@@ -1,6 +1,6 @@
 const { getFirestore } = require('../../modules');
 
-exports.hideComment = async (req, res) => {
+exports.reportComment = async (req, res) => {
     const local_uid = res.locals.uid;
 
     try {

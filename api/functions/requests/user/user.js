@@ -43,6 +43,8 @@ exports.updateUserProfile = async (req, res) => {
     const user = getFirestore().collection('users').doc(local_uid);
     const user_in_subcollections = getFirestore().collectionGroup('users')
         .where('owner.uid', '==', local_uid);
+    const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
+        .where('owner.uid', '==', local_uid);
     const posts = getFirestore().collection('posts')
         .where('owner.uid', '==', local_uid);
 
@@ -55,6 +57,10 @@ exports.updateUserProfile = async (req, res) => {
             .catch(error => { throw error });
 
         const user_in_subcollections_count = await user_in_subcollections.count().get()
+            .then(value => value.data().count)
+            .catch(error => { throw error });
+
+        const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections.count().get()
             .then(value => value.data().count)
             .catch(error => { throw error });
             
@@ -73,6 +79,14 @@ exports.updateUserProfile = async (req, res) => {
         };
 
         if(user_in_subcollections_count > 0) {
+            await user_in_liked_comments_subcollections.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });
+                });
+            });
+        };
+
+        if(user_comment_likes_subcollections_count > 0) {
             await user_in_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });

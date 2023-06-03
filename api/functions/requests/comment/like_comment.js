@@ -2,40 +2,75 @@ const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 
 exports.likeComment = async (req, res) => {
     const local_uid = res.locals.uid;
-    const { comment_id, comment_liked } = req.body;
+    const { comment_id, post_id, comment_liked } = req.body;
 
     try {
-        const comment_id = getFirestore().collection('liked_comments').doc().id;
-        const comment_doc = getFirestore().collection('liked_comments').doc(comment_id);
-        const user_info = getFirestore().collection(`liked_comments/${comment_id}/users`).doc();
-        const post = getFirestore().collection('posts').doc(post_id);
+        
+        const liked_comment_doc_empty = await getFirestore().collection(`comments/${post_id}/liked_comments`)
+            .where('comment_id_ref', '==', comment_id)
+            .where('owner.uid', '==', local_uid)
+            .get().then(snapshot => snapshot.empty);
 
-        const { username, profile_image, occupation } = await getFirestore().collection('users').doc(local_uid)
-            .get().then(doc => doc.data())
-            .catch(() => { throw Error('An internal error occurred. Please try again') });
-
-        const new_comment = {
-            comment_id,
-            created_at: Timestamp.now().seconds,
-            text,
-            owner: {
-                uid: local_uid,
-                username,
-                profile_image,
-                occupation,
-            },
+        if(liked_comment_doc_empty && !comment_liked || !liked_comment_doc_empty && comment_liked) {
+            res.status(400).send({ message: 'Operation not allowed.', warning: true });
+            return;
         };
 
-        const batch = getFirestore().batch();
+        const comment = getFirestore().collection(`comments/${post_id}/users`).doc(comment_id);
+        const liked_comment_doc = getFirestore().collection(`comments/${post_id}/liked_comments`).doc();
+        const post = getFirestore().collection('posts').doc(post_id);
 
-        batch.create(comment_doc, { post_id_ref: post_id, user_uids: FieldValue.arrayUnion(local_uid) });
-        batch.create(user_info, new_comment);
-        batch.set(post, { total_likes: FieldValue.increment(1) }, { merge: true });
+        const post_exists = (await post.get()).exists;
+        const comment_exists = (await comment.get()).exists;
 
-        await batch.commit()
-            .catch(() => { throw Error('An internal error occurred. Please try again') });
+        if(!post_exists || !comment_exists) {
+            res.status(400).send({ message: 'Operation not allowed.', warning: true });
+            return;
+        };
 
-        res.status(200).send({});
+        if(comment_liked) {
+            const { username, profile_image, occupation } = await getFirestore().collection('users').doc(local_uid)
+                .get().then(doc => doc.data())
+                .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            const batch = getFirestore().batch();
+
+            batch.create(liked_comment_doc, { 
+                comment_liked_at: Timestamp.now().seconds,
+                comment_id_ref: comment_id,
+                owner: { 
+                    uid: local_uid, 
+                    profile_image, 
+                    occupation, 
+                    username 
+                },
+            });
+
+            batch.set(comment, { total_likes: FieldValue.increment(1) }, { merge: true });
+
+            await batch.commit()
+                .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            res.status(200).send({ message: 'Comment liked!' });
+        }
+
+        if(!comment_liked) {
+            const batch = getFirestore().batch();
+
+            await getFirestore().collection(`comments/${post_id}/liked_comments`)
+                .where('comment_id_ref', '==', comment_id)
+                .where('owner.uid', '==', local_uid)
+                .get().then(snapshot => {
+                    batch.delete(snapshot.docs[snapshot.docs.length - 1].ref)
+                })
+
+            batch.set(comment, { total_likes: FieldValue.increment(-1) }, { merge: true });
+
+            await batch.commit()
+                .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            res.status(200).send({ message: 'Comment unliked!' });
+        }
 
     } catch(error) {
         res.status(500).send(error);

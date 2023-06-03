@@ -45,6 +45,8 @@ exports.uploadProfileImage = async (req, res) => {
                 const user = getFirestore().collection('users').doc(local_uid);
                 const user_in_subcollections = getFirestore().collectionGroup('users')
                     .where('owner.uid', '==', local_uid);
+                const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
+                    .where('owner.uid', '==', local_uid);
                 const posts = getFirestore().collection('posts')
                     .where('owner.uid', '==', local_uid);
 
@@ -55,6 +57,10 @@ exports.uploadProfileImage = async (req, res) => {
                     .catch(error => { throw error });
                 
                 const user_in_subcollections_count = await user_in_subcollections.count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
+
+                const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections.count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
 
@@ -74,6 +80,15 @@ exports.uploadProfileImage = async (req, res) => {
 
                 if(user_in_subcollections_count > 0) {
                     await user_in_subcollections.get().then(snapshot => {
+                        snapshot.forEach(doc => {
+                            batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
+                        });
+                    });
+                };
+
+                if(user_comment_likes_subcollections_count > 0) {
+                    console.log(user_comment_likes_subcollections_count)
+                    await user_in_liked_comments_subcollections.get().then(snapshot => {
                         snapshot.forEach(doc => {
                             batch.set(doc.ref, { owner: { profile_image: image_url }}, { merge: true });
                         });
@@ -108,6 +123,8 @@ exports.deleteProfileImage = async (req, res) => {
         const user = await getFirestore().collection('users').doc(local_uid);
         const user_in_subcollections = getFirestore().collectionGroup('users')
             .where('owner.uid', '==', local_uid);
+        const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
+            .where('owner.uid', '==', local_uid);
         const user_posts = getFirestore().collection('posts')
             .where('owner.uid', '==', local_uid);
 
@@ -118,6 +135,10 @@ exports.deleteProfileImage = async (req, res) => {
         const user_in_subcollections_count = await user_in_subcollections.count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
+        
+        const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections.count().get()
+            .then(value => value.data().count)
+            .catch(error => { throw error });
         
         if(user_exists) {
             batch.set(user, { profile_image: null }, { merge: true });
@@ -133,6 +154,14 @@ exports.deleteProfileImage = async (req, res) => {
 
         if(user_in_subcollections_count > 0) {
             await user_in_subcollections.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { owner: { profile_image: null }}, { merge: true });
+                });
+            });
+        };
+
+        if(user_comment_likes_subcollections_count > 0) {
+            await user_in_liked_comments_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { profile_image: null }}, { merge: true });
                 });

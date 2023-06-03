@@ -78,7 +78,7 @@ exports.updateUserProfile = async (req, res) => {
             });
         };
 
-        if(user_in_subcollections_count > 0) {
+        if(user_comment_likes_subcollections_count > 0) {
             await user_in_liked_comments_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });
@@ -86,7 +86,7 @@ exports.updateUserProfile = async (req, res) => {
             });
         };
 
-        if(user_comment_likes_subcollections_count > 0) {
+        if(user_in_subcollections_count > 0) {
             await user_in_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { username, occupation }}, { merge: true });

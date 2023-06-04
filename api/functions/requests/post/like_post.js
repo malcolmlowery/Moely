@@ -8,9 +8,10 @@ exports.likePost = async (req, res) => {
 
         const post = getFirestore().collection('posts').doc(post_id);
         const liked_post = getFirestore().collection('liked_posts').doc(post_id);
+        const post_exists = (await post.get()).exists;
         const user_exists = await (await getFirestore().collection(`liked_posts/${post_id}/users`).doc(local_uid).get()).exists;
 
-        if(post_liked && user_exists || !post_liked && !user_exists) {
+        if(post_liked && user_exists || !post_liked && !user_exists || !post_exists) {
             res.status(400).send({ message: 'Operation not allowed.', warning: true });
             return
         };

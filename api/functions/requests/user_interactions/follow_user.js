@@ -47,8 +47,6 @@ exports.followUser = async (req, res) => {
                     batch.delete(doc)
                 });
 
-            // batch.set(local_user, { following_users_uids: FieldValue.arrayRemove(profile_uid) }, { merge: true });
-
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
@@ -73,9 +71,6 @@ exports.followUser = async (req, res) => {
                     started_following_on: Timestamp.now().seconds, 
                     owner: { uid: profile_uid, username: user_profile.username, profile_image: user_profile.profile_image, occupation: user_profile.occupation }
                 }).catch(() => { throw Error('An internal error occurred. Please try again') });
-
-            await local_user.set({ following_users_uids: FieldValue.arrayUnion(profile_uid) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
             
             res.status(200).send({ message: `You are now following ${user_profile.username}`, following_user: true })
         }

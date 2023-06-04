@@ -39,5 +39,8 @@
     },
     "singleProjectMode": true
   },
-  "extensions": {}
+  "extensions": {
+    "firestore-algolia-search": "algolia/firestore-algolia-search@1.1.2",
+    "firestore-algolia-search-o2uw": "algolia/firestore-algolia-search@1.1.2"
+  }
 }

@@ -47,20 +47,30 @@ exports.uploadProfileImage = async (req, res) => {
                     .where('owner.uid', '==', local_uid);
                 const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
                     .where('owner.uid', '==', local_uid);
+                    const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
+                        .where('uid', '==', local_uid);
                 const posts = getFirestore().collection('posts')
                     .where('owner.uid', '==', local_uid);
 
                 const user_exists = (await user.get()).exists
                 
-                const number_of_posts = await posts.count().get()
+                const number_of_posts = await posts
+                    .count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
                 
-                const user_in_subcollections_count = await user_in_subcollections.count().get()
+                const user_in_subcollections_count = await user_in_subcollections
+                    .count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
 
-                const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections.count().get()
+                const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections
+                    .count().get()
+                    .then(value => value.data().count)
+                    .catch(error => { throw error });
+
+                const activity_in_user_activity_history_subcollection_count = await activity_in_user_activity_history_subcollection
+                    .count().get()
                     .then(value => value.data().count)
                     .catch(error => { throw error });
 
@@ -95,6 +105,14 @@ exports.uploadProfileImage = async (req, res) => {
                     });
                 };
 
+                if(activity_in_user_activity_history_subcollection_count > 0) {
+                    await activity_in_user_activity_history_subcollection.get().then(snapshot => {
+                        snapshot.forEach(doc => {
+                            batch.set(doc.ref, { profile_image: image_url }, { merge: true });
+                        });
+                    });
+                };
+
                 await batch.commit()
                     .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
@@ -125,6 +143,8 @@ exports.deleteProfileImage = async (req, res) => {
             .where('owner.uid', '==', local_uid);
         const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
             .where('owner.uid', '==', local_uid);
+        const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
+            .where('uid', '==', local_uid);
         const user_posts = getFirestore().collection('posts')
             .where('owner.uid', '==', local_uid);
 
@@ -137,6 +157,11 @@ exports.deleteProfileImage = async (req, res) => {
                     .catch(error => { throw error });
         
         const user_comment_likes_subcollections_count = await user_in_liked_comments_subcollections.count().get()
+            .then(value => value.data().count)
+            .catch(error => { throw error });
+
+        const activity_in_user_activity_history_subcollection_count = await activity_in_user_activity_history_subcollection
+            .count().get()
             .then(value => value.data().count)
             .catch(error => { throw error });
         
@@ -164,6 +189,14 @@ exports.deleteProfileImage = async (req, res) => {
             await user_in_liked_comments_subcollections.get().then(snapshot => {
                 snapshot.forEach(doc => {
                     batch.set(doc.ref, { owner: { profile_image: null }}, { merge: true });
+                });
+            });
+        };
+
+        if(activity_in_user_activity_history_subcollection_count > 0) {
+            await activity_in_user_activity_history_subcollection.get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { profile_image: null }, { merge: true });
                 });
             });
         };

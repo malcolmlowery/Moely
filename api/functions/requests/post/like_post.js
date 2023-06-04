@@ -40,7 +40,7 @@ exports.likePost = async (req, res) => {
             return;
         } 
         
-        if(!post_liked && user_exists){
+        if(!post_liked && user_exists) {
 
             await liked_post.set({ 
                 user_uids: FieldValue.arrayRemove(local_uid),

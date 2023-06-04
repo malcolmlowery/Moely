@@ -1,4 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
+const { addActivityToUserHistory } = require('../utils/activity_history.util');
 
 exports.followUser = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -30,11 +31,6 @@ exports.followUser = async (req, res) => {
         const user_doc_empty = await user_in_users_collection.get()
             .then(snapshot => snapshot.empty);
 
-        // Add user to activity history collection
-        const user_activity_history_root_doc = getFirestore().collection('activity_history').doc(local_uid);
-        const user_activity_history_sub_doc = user_activity_history_root_doc.collection('activities');
-        const user_activity_history_root_doc_exists = (await user_activity_history_root_doc.get()).exists;
-
         if(!user_doc_empty) {
             const batch = getFirestore().batch();
             
@@ -61,16 +57,8 @@ exports.followUser = async (req, res) => {
                     const doc = snapshot.docs[snapshot.docs.length - 1].ref
                     batch.delete(doc)
                 });
-           
-            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(-1) }, { merge: true });
 
-            await user_activity_history_sub_doc
-                .where('type', '==', 'following')
-                .where('uid', '==', profile_uid)
-                .get().then(snapshot => {
-                    const doc = snapshot.docs[snapshot.docs.length - 1].ref
-                    batch.delete(doc)
-                });
+            await addActivityToUserHistory({ local_uid, batch, type: 'following', profile_uid })
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
@@ -106,13 +94,11 @@ exports.followUser = async (req, res) => {
                     },
                 }).catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            await user_activity_history_root_doc.set({ total_user_activities: FieldValue.increment(1) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
-
-            await user_activity_history_sub_doc.doc().create({
+            await addActivityToUserHistory({
+                local_uid,
                 type: 'following',
                 timestamp,
-                uid: user_profile.uid,
+                profile_uid: user_profile.uid,
                 username: user_profile.username,
                 profile_image: user_profile.profile_image,
                 occupation: user_profile.occupation,

@@ -4,6 +4,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
 const { Storage } = require('@google-cloud/storage');
+const vision = require('@google-cloud/vision');
 const formidable = require('formidable-serverless');
 const sharp = require('sharp');
 
@@ -21,4 +22,5 @@ module.exports = {
     bucket,
     formidable,
     sharp,
+    vision,
 };

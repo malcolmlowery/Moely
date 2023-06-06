@@ -8,7 +8,10 @@ const {
     bucket,
     getFirestore,
     getAuth,
+    vision,
 } = require('../../modules');
+
+const vision_client = new vision.ImageAnnotatorClient({ keyFilename: '/Users/malcolmlowery/Documents/MedRant/api/functions/credentials/fb-service-account.json' });
 
 exports.uploadProfileImage = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -28,6 +31,19 @@ exports.uploadProfileImage = async (req, res) => {
 
                 const filePath = file.path;
                 const tmpFilePath = join(tmpdir(), `${image_name}.jpeg`);
+
+                const [result] = await vision_client.safeSearchDetection(filePath)
+                const image_detections = result.safeSearchAnnotation;
+                
+                if( image_detections.adult === 'LIKELY' || 
+                    image_detections.adult === 'POSSIBLE' || 
+                    image_detections.adult === 'VERY_LIKELY' ||
+                    image_detections.racy === 'VERY_LIKELY' ||
+                    image_detections.violence === 'VERY_LIKELY'
+                ) {
+                    res.status(200).send({ message: 'Please upload a different image.', warning: true });
+                    return;
+                };
                 
                 await sharp(filePath)
                     .resize({ height: 200, width: 200 })

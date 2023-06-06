@@ -8,7 +8,7 @@ exports.authGuard = (endpoint) => functions.https.onRequest(async (req ,res) => 
         return
     };
 
-    res.locals.uid = 'TuP3tkwzvcN5G503bqp7'
+    res.locals.uid = 's3Lo4W7O0QmfKxo5GXtw'
 
     return endpoint(req, res);
 });

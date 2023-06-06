@@ -1,4 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
+const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.likeComment = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -6,6 +7,7 @@ exports.likeComment = async (req, res) => {
 
     try {
         
+        const timestamp = Timestamp.now().seconds;
         const liked_comment_doc_empty = await getFirestore().collection(`comments/${post_id}/liked_comments`)
             .where('comment_id_ref', '==', comment_id)
             .where('owner.uid', '==', local_uid)
@@ -33,10 +35,12 @@ exports.likeComment = async (req, res) => {
                 .get().then(doc => doc.data())
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
+            const comment_data = (await comment.get()).data()
+
             const batch = getFirestore().batch();
 
             batch.create(liked_comment_doc, { 
-                comment_liked_at: Timestamp.now().seconds,
+                comment_liked_at: timestamp,
                 comment_id_ref: comment_id,
                 owner: { 
                     uid: local_uid, 
@@ -47,6 +51,19 @@ exports.likeComment = async (req, res) => {
             });
 
             batch.set(comment, { total_likes: FieldValue.increment(1) }, { merge: true });
+
+            await userActivityHistory({ 
+                batch,
+                local_uid,
+                type: 'comment_like',
+                uid: comment_data.owner.uid, 
+                username: comment_data.owner.username, 
+                profile_image: comment_data.owner.profile_image,
+                comment_id,
+                post_id,
+                text: comment_data.text,
+                occupation: comment_data.owner.occupation,
+            }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
@@ -65,6 +82,9 @@ exports.likeComment = async (req, res) => {
                 })
 
             batch.set(comment, { total_likes: FieldValue.increment(-1) }, { merge: true });
+
+            await userActivityHistory({ local_uid, batch, type: 'comment_like', post_id, comment_id })
+                .catch(() => { throw Error('An internal error occurred. Please try again') });
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });

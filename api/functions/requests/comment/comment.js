@@ -1,4 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
+const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.createComment = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -12,12 +13,12 @@ exports.createComment = async (req, res) => {
 
         const post_exists = (await post.get()).exists;
 
-
         if(!post_exists) {
             res.status(400).send({ message: 'Operation not allowed.', warning: true });
             return;
         };
 
+        const post_owner = (await post.get()).data();
         const { username, profile_image, occupation } = await getFirestore().collection('users').doc(local_uid)
             .get().then(doc => doc.data())
             .catch(() => { throw Error('An internal error occurred. Please try again') });
@@ -40,6 +41,18 @@ exports.createComment = async (req, res) => {
         batch.set(comment_doc, { post_id_ref: post_id, user_uids: FieldValue.arrayUnion(local_uid) }, { merge: true });
         batch.create(user_info_doc, new_comment);
         batch.set(post, { total_comments: FieldValue.increment(1) }, { merge: true });
+
+        await userActivityHistory({ 
+            local_uid,
+            type: 'comment',
+            comment_id: user_info_doc.id,
+            text,
+            post_id,
+            uid: post_owner.owner.uid, 
+            username: post_owner.owner.username, 
+            profile_image: post_owner.owner.profile_image,
+            occupation: post_owner.owner.occupation,
+        }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
         await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });
@@ -78,6 +91,7 @@ exports.updateComment = async (req, res) => {
 };
 
 exports.deleteComment = async (req, res) => {
+    const local_uid = res.locals.uid;
     const { comment_id, post_id } = req.body;
 
     try {
@@ -99,10 +113,13 @@ exports.deleteComment = async (req, res) => {
         const batch = getFirestore().batch();
         
         await comment_likes.get().then(snapshot => {
-            snapshot.forEach(doc => batch.delete(doc.ref))
+            snapshot.forEach(doc => batch.delete(doc.ref));
         });
         batch.delete(user_comment);
-        batch.set(post, { total_comments: FieldValue.increment(-1) }, { merge: true })
+        batch.set(post, { total_comments: FieldValue.increment(-1) }, { merge: true });
+
+        await userActivityHistory({ local_uid, batch, type: 'comment', post_id, comment_id })
+            .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });

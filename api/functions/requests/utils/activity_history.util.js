@@ -86,7 +86,7 @@ exports.userActivityHistory = async (args) => {
         const doc_empty = await activity_doc.get().then(snapshot => snapshot.empty);
         
         if(doc_empty) {
-            await activites_collection.doc().create({
+            batch.create(new_activites_collection_doc, {
                 type: 'comment',
                 comment_id,
                 post_id,
@@ -95,22 +95,19 @@ exports.userActivityHistory = async (args) => {
                 profile_image,
                 occupation,
                 text,
-            }).catch(() => { throw Error('An internal error occurred. Please try again') });
+            });
 
-            await user_activity_history_root_doc.set({ total_user_activities: FieldValue.increment(1) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
-
+            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true });
             return;
         };
 
         if(!doc_empty) {
             await activity_doc.get().then(async (snapshot) => {
-                await snapshot.docs[snapshot.docs.length - 1].ref.delete();
+                const doc = snapshot.docs[snapshot.docs.length - 1].ref;
+                batch.delete(doc);
             }).catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            await user_activity_history_root_doc.set({ total_user_activities: FieldValue.increment(-1) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
-
+            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(-1) }, { merge: true });
             return;
         };
     };
@@ -120,7 +117,7 @@ exports.userActivityHistory = async (args) => {
         const doc_empty = await activity_doc.get().then(snapshot => snapshot.empty);
         
         if(doc_empty) {
-            await activites_collection.doc().create({
+            batch.create(new_activites_collection_doc, {
                 type: 'comment_like',
                 comment_id,
                 post_id,
@@ -129,22 +126,19 @@ exports.userActivityHistory = async (args) => {
                 profile_image,
                 occupation,
                 text,
-            }).catch(() => { throw Error('An internal error occurred. Please try again') });
+            });
 
-            await user_activity_history_root_doc.set({ total_user_activities: FieldValue.increment(1) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
-
+            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true })
             return;
         };
 
         if(!doc_empty) {
             await activity_doc.get().then(async (snapshot) => {
-                await snapshot.docs[snapshot.docs.length - 1].ref.delete();
+                const doc = snapshot.docs[snapshot.docs.length - 1].ref;
+                batch.delete(doc);
             }).catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            await user_activity_history_root_doc.set({ total_user_activities: FieldValue.increment(-1) }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
-
+            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(-1) }, { merge: true });
             return;
         };
     };

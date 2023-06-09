@@ -43,6 +43,7 @@ exports.createComment = async (req, res) => {
         batch.set(post, { total_comments: FieldValue.increment(1) }, { merge: true });
 
         await userActivityHistory({ 
+            batch,
             local_uid,
             type: 'comment',
             comment_id: user_info_doc.id,
@@ -118,7 +119,7 @@ exports.deleteComment = async (req, res) => {
         batch.delete(user_comment);
         batch.set(post, { total_comments: FieldValue.increment(-1) }, { merge: true });
 
-        await userActivityHistory({ local_uid, batch, type: 'comment', post_id, comment_id })
+        await userActivityHistory({ batch, local_uid, batch, type: 'comment', post_id, comment_id })
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
         await batch.commit()

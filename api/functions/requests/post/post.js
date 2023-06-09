@@ -57,6 +57,8 @@ exports.deletePost = async (req, res) => {
         const post_comments = getFirestore().collection('comments').doc(post_id);
         const liked_comments_of_post = getFirestore().collection(`comments/${post_id}/liked_comments`);
         const reported_comments_of_post = getFirestore().collection(`comments/${post_id}/reported_comments`);
+        // const post_in_user_activities = getFirestore().collectionGroup('activities')
+        //     .where('post_id', '==', post_id);
 
         const batch = getFirestore().batch();
 

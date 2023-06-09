@@ -56,10 +56,15 @@ exports.deletePost = async (req, res) => {
         const liked_post = getFirestore().collection('liked_posts').doc(post_id);
         const post_comments = getFirestore().collection('comments').doc(post_id);
         const liked_comments_of_post = getFirestore().collection(`comments/${post_id}/liked_comments`);
+        const reported_comments_of_post = getFirestore().collection(`comments/${post_id}/reported_comments`);
 
         const batch = getFirestore().batch();
 
         await liked_comments_of_post.get()
+            .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
+            .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+        await reported_comments_of_post.get()
             .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
             .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 

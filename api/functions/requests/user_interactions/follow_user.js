@@ -6,6 +6,8 @@ exports.followUser = async (req, res) => {
     const { profile_uid } = req.body;
 
     try {
+
+        const batch = getFirestore().batch();
         const timestamp = Timestamp.now().seconds;
         const local_user = getFirestore().collection('users').doc(local_uid)
 
@@ -32,8 +34,7 @@ exports.followUser = async (req, res) => {
             .then(snapshot => snapshot.empty);
 
         if(!user_doc_empty) {
-            const batch = getFirestore().batch();
-            
+
             batch.set(followers_collection_doc, { 
                 user_uids: FieldValue.arrayRemove(local_uid), 
                 total_followers: FieldValue.increment(-1) 
@@ -58,7 +59,7 @@ exports.followUser = async (req, res) => {
                     batch.delete(doc)
                 }).catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            await userActivityHistory({ local_uid, batch, type: 'following', profile_uid })
+            await userActivityHistory({ batch, local_uid, batch, type: 'following', profile_uid })
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
             await batch.commit()
@@ -68,34 +69,35 @@ exports.followUser = async (req, res) => {
         };
 
         if(user_doc_empty) {
-            await followers_collection_doc.set({ 
+            const user_in_followers_subcollection = followers_collection_doc.collection('users').doc();
+            const user_in_followings_subcollection = following_collection_doc.collection('users').doc();
+
+            batch.set(followers_collection_doc, { 
                     user_uids: FieldValue.arrayUnion(local_uid), 
                     total_followers: FieldValue.increment(1),
                 }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
         
-            await followers_collection_doc.collection('users').doc().create({ 
-                    followed_on: timestamp, 
-                    owner: { uid: local_uid, username, profile_image, occupation }
-                }).catch(() => { throw Error('An internal error occurred. Please try again') });
+            batch.create(user_in_followers_subcollection, { 
+                followed_on: timestamp, 
+                owner: { uid: local_uid, username, profile_image, occupation } 
+            });
 
-            await following_collection_doc.set({ 
-                    user_uids: FieldValue.arrayUnion(profile_uid), 
-                    total_following: FieldValue.increment(1) 
-                }, { merge: true })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
+            batch.set(following_collection_doc, { 
+                user_uids: FieldValue.arrayUnion(profile_uid), total_following: FieldValue.increment(1) 
+            }, { merge: true });
 
-            await following_collection_doc.collection('users').doc().create({ 
-                    started_following_on: timestamp, 
-                    owner: { 
-                        uid: profile_uid, 
-                        username: user_profile.username, 
-                        profile_image: user_profile.profile_image, 
-                        occupation: user_profile.occupation,
-                    },
-                }).catch(() => { throw Error('An internal error occurred. Please try again') });
+            batch.create(user_in_followings_subcollection, { 
+                started_following_on: timestamp, 
+                owner: { 
+                    uid: profile_uid, 
+                    username: user_profile.username, 
+                    profile_image: user_profile.profile_image, 
+                    occupation: user_profile.occupation,
+                },
+            });
 
             await userActivityHistory({
+                batch,
                 local_uid,
                 type: 'following',
                 timestamp,
@@ -104,6 +106,9 @@ exports.followUser = async (req, res) => {
                 profile_image: user_profile?.profile_image,
                 occupation: user_profile?.occupation,
             }).catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            await batch.commit()
+                .catch(() => { throw Error('An internal error occurred. Please try again') });
             
             res.status(200).send({ message: `You are now following ${user_profile.username}`, following_user: true });
         };

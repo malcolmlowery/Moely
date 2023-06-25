@@ -1,4 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
+const { createNewNotification } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.likeComment = async (req, res) => {
@@ -64,6 +65,19 @@ exports.likeComment = async (req, res) => {
                 text: comment_data.text,
                 occupation: comment_data.owner.occupation,
             }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            
+            await createNewNotification({ 
+                batch, 
+                timestamp, 
+                local_uid, 
+                notification_type: 'comment_liked',
+                notification_owner_uid: comment_data?.owner.uid, 
+                content: { 
+                    ref_id: comment_id, 
+                    post_ref_id: post_id, 
+                    text: comment_data.text,
+                },
+            }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
@@ -85,6 +99,19 @@ exports.likeComment = async (req, res) => {
 
             await userActivityHistory({ local_uid, batch, type: 'comment_like', post_id, comment_id })
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            // await createNewNotification({ 
+            //     batch, 
+            //     timestamp, 
+            //     local_uid, 
+            //     notification_type: 'comment_liked',
+            //     notification_owner_uid: comment_data?.owner.uid, 
+            //     content: { 
+            //         ref_id: comment_id, 
+            //         post_ref_id: post_id, 
+            //         text: comment_data.text,
+            //     },
+            // }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });

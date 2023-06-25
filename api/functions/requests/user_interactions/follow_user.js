@@ -1,4 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
+const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.followUser = async (req, res) => {
@@ -62,6 +63,16 @@ exports.followUser = async (req, res) => {
             await userActivityHistory({ batch, local_uid, batch, type: 'following', profile_uid })
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
+            if(profile_uid !== local_uid) {
+                await deleteNotificationEntry({ 
+                    batch, 
+                    local_uid, 
+                    notification_type: 'new_follower',
+                    notification_owner_uid: profile_uid, 
+                    content: { ref_id: profile_uid },
+                }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            };
+
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
@@ -106,6 +117,17 @@ exports.followUser = async (req, res) => {
                 profile_image: user_profile?.profile_image,
                 occupation: user_profile?.occupation,
             }).catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            if(profile_uid !== local_uid) {
+                await createNewNotification({ 
+                    batch, 
+                    timestamp, 
+                    local_uid, 
+                    notification_type: 'new_follower',
+                    notification_owner_uid: profile_uid, 
+                    content: { ref_id: profile_uid },
+                }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            };
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });

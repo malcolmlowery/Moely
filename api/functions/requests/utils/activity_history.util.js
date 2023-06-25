@@ -10,6 +10,7 @@ exports.userActivityHistory = async (args) => {
         occupation,
         profile_uid,
         profile_image,
+        other_user_uid,
         timestamp,
         post_id,
         comment_id,
@@ -51,19 +52,20 @@ exports.userActivityHistory = async (args) => {
     };
 
     if(type === 'like') {
-        const activity_doc = activites_collection.where('type', '==', 'like').where('post_id', '==', post_id);
+        const activity_doc = activites_collection.where('post_id_ref', '==', post_id).where('content_owner_uid', '==', other_user_uid).where('type', '==', 'like');
         const doc_empty = await activity_doc.get().then(snapshot => snapshot.empty);
-
+        
         if(doc_empty) {
             batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true });
             batch.create(new_activites_collection_doc, {
                 type: 'like',
                 timestamp,
-                uid,
+                content_owner_uid: other_user_uid,
+                post_id_ref: post_id,
                 username,
                 profile_image,
                 occupation,
-                post_id,
+                text,
             });
 
             return;
@@ -82,15 +84,15 @@ exports.userActivityHistory = async (args) => {
     };
 
     if(type === 'comment') {
-        const activity_doc = activites_collection.where('post_id', '==', post_id).where('comment_id', '==', comment_id).where('type', '==', 'comment');
+        const activity_doc = activites_collection.where('comment_id', '==', comment_id).where('post_id_ref', '==', post_id).where('content_owner_uid', '==', other_user_uid).where('type', '==', 'comment');
         const doc_empty = await activity_doc.get().then(snapshot => snapshot.empty);
         
         if(doc_empty) {
             batch.create(new_activites_collection_doc, {
                 type: 'comment',
                 comment_id,
-                post_id,
-                uid,
+                content_owner_uid: other_user_uid,
+                post_id_ref: post_id,
                 username,
                 profile_image,
                 occupation,
@@ -113,15 +115,15 @@ exports.userActivityHistory = async (args) => {
     };
 
     if(type === 'comment_like') {
-        const activity_doc = activites_collection.where('post_id', '==', post_id).where('comment_id', '==', comment_id).where('type', '==', 'comment_like');
+        const activity_doc = activites_collection.where('post_id_ref', '==', post_id).where('comment_id', '==', comment_id).where('type', '==', 'comment_like');
         const doc_empty = await activity_doc.get().then(snapshot => snapshot.empty);
         
         if(doc_empty) {
             batch.create(new_activites_collection_doc, {
                 type: 'comment_like',
                 comment_id,
-                post_id,
-                uid,
+                content_owner_uid: other_user_uid,
+                post_id_ref: post_id,
                 username,
                 profile_image,
                 occupation,

@@ -1,5 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
-const { createNotification } = require('../notifications/notifications');
+const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.likePost = async (req, res) => {
@@ -22,13 +22,13 @@ exports.likePost = async (req, res) => {
             return
         };
 
+        const post_owner = (await post.get()).data();
+
         if(post_liked) {
 
             const { username, profile_image, uid } = await getFirestore().collection('users').doc(local_uid)
                 .get().then(doc => doc.data())
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
-
-            const post_owner = (await post.get()).data();
 
             batch.set(liked_post, { post_id_ref: post_id, user_uids: FieldValue.arrayUnion(local_uid)}, { merge: true });
             batch.set(post, { total_likes: FieldValue.increment(1) }, { merge: true });
@@ -51,10 +51,19 @@ exports.likePost = async (req, res) => {
                 profile_image: post_owner?.owner.profile_image,
                 post_id,
                 occupation: post_owner?.owner.occupation,
+                text: post_owner?.text 
             }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-            // await createNotification({ batch, type: 'like', post_id, local_uid, other_user_uid: post_owner?.owner.uid, text: post.text })
-            //     .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            if(post_owner.owner.uid !== local_uid) {
+                await createNewNotification({ 
+                    batch, 
+                    timestamp, 
+                    local_uid, 
+                    notification_type: 'post_liked',
+                    notification_owner_uid: post_owner?.owner.uid, 
+                    content: { ref_id: post_id, text: post_owner.text },
+                }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            };
 
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
@@ -64,17 +73,26 @@ exports.likePost = async (req, res) => {
         } 
         
         if(!post_liked) {
-            const user_in_liked_posts_subcollection = liked_post.collection('users').doc(local_uid);
-            
-            batch.set(liked_post, { user_uids: FieldValue.arrayRemove(local_uid) }, { merge: true})
-            batch.delete(user_in_liked_posts_subcollection)
+            batch.set(liked_post, { user_uids: FieldValue.arrayRemove(local_uid) }, { merge: true });
+            batch.delete(user_in_liked_post_subcollection);
             batch.set(post, { total_likes: FieldValue.increment(-1) }, { merge: true });
 
-            await userActivityHistory({ batch, local_uid, type: 'like', post_id })
-                .catch(() => { throw Error('An internal error occurred. Please try again') });
+            await userActivityHistory({ 
+                batch, local_uid, 
+                type: 'like', 
+                post_id,
+                other_user_uid: post_owner?.owner.uid, 
+            }).catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            // await createNotification({ batch, type: 'like', action: 'remove_notification', post_id, local_uid, other_user_uid: post_owner?.owner.uid })
-            //     .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            if(post_owner.owner.uid !== local_uid) {
+                await deleteNotificationEntry({ 
+                    batch, 
+                    local_uid, 
+                    notification_type: 'post_liked',
+                    notification_owner_uid: post_owner?.owner.uid, 
+                    content: { ref_id: post_id },
+                }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            };
             
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });

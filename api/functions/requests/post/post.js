@@ -1,4 +1,4 @@
-const { getFirestore, Timestamp } = require('../../modules');
+const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 
 exports.createPost = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -46,6 +46,7 @@ exports.updatePost = async (req, res) => {
 };
 
 exports.deletePost = async (req, res) => {
+    const local_uid = res.locals.uid;
     const { post_id } = req.body;
 
     try {
@@ -57,8 +58,15 @@ exports.deletePost = async (req, res) => {
         const post_comments = getFirestore().collection('comments').doc(post_id);
         const liked_comments_of_post = getFirestore().collection(`comments/${post_id}/liked_comments`);
         const reported_comments_of_post = getFirestore().collection(`comments/${post_id}/reported_comments`);
-        // const post_in_user_activities = getFirestore().collectionGroup('activities')
-        //     .where('post_id', '==', post_id);
+        const notification_root_doc = getFirestore().collection('notifications').doc(local_uid);
+        const notifications = getFirestore().collection(`notifications/${local_uid}/notification`)
+            .where('content.ref_id', '==', post_id);
+        const post_in_user_activities = getFirestore().collectionGroup('activities')
+            .where('post_id_ref', '==', post_id).where('content_owner_uid', '==', local_uid);
+
+        const total_post_new_notifications = await notifications.where('has_new_activity', '==', true)
+            .count().get().then(value => value.data().count)
+            .catch(error => console.log(error));
 
         const batch = getFirestore().batch();
 
@@ -78,6 +86,15 @@ exports.deletePost = async (req, res) => {
             .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
             .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
+        await post_in_user_activities.get()
+            .then(snapshot => snapshot.forEach(doc => batch.set(doc.ref, { content_deleted: true }, { merge: true }) ))
+            .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+        await notifications.get()
+            .then(snapshot => snapshot.forEach(doc => batch.delete(doc.ref) ))
+            .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+        batch.set(notification_root_doc, { total_notifications: FieldValue.increment(-total_post_new_notifications) }, { merge: true });
         batch.delete(post_comments);
         batch.delete(post);
         batch.delete(hidden_post);

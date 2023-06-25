@@ -12,7 +12,7 @@ exports.createPost = async (req, res) => {
         const post = {
             post_id,
             created_at: Timestamp.now().seconds,
-            text,
+            text: Math.random(),
             total_likes: 0,
             total_comments: 0,
             owner: { uid: local_uid, username, profile_image, occupation }

@@ -14,6 +14,7 @@ const { reportComment } = require('./requests/comment/report_comment');
 const { followUser } = require('./requests/user_interactions/follow_user');
 const { getNewsfeedPosts } = require('./requests/post/posts');
 const { getPostComments } = require('./requests/comment/comments');
+const { getUserProfileNewsfeed } = require('./requests/post/profile_posts');
 
 initializeApp();
 getFirestore().settings({ ignoreUndefinedProperties: true })
@@ -21,6 +22,7 @@ getFirestore().settings({ ignoreUndefinedProperties: true })
 exports.api = {
     createUser,
     getUserProfile: authGuard(getUserProfile),
+    getUserProfileNewsfeed: authGuard(getUserProfileNewsfeed),
     updateUserProfile: authGuard(updateUserProfile),
 
     uploadProfileImage: authGuard(uploadProfileImage),

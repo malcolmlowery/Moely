@@ -1,5 +1,5 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
-const { createNewNotification } = require('../notifications/notifications');
+const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
 
 exports.likeComment = async (req, res) => {
@@ -31,12 +31,12 @@ exports.likeComment = async (req, res) => {
             return;
         };
 
+        const comment_data = (await comment.get()).data()
+
         if(comment_liked) {
             const { username, profile_image, occupation } = await getFirestore().collection('users').doc(local_uid)
                 .get().then(doc => doc.data())
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
-
-            const comment_data = (await comment.get()).data()
 
             const batch = getFirestore().batch();
 
@@ -86,6 +86,7 @@ exports.likeComment = async (req, res) => {
         }
 
         if(!comment_liked) {
+            const post_data = (await post.get()).data();
             const batch = getFirestore().batch();
 
             await getFirestore().collection(`comments/${post_id}/liked_comments`)
@@ -97,21 +98,20 @@ exports.likeComment = async (req, res) => {
 
             batch.set(comment, { total_likes: FieldValue.increment(-1) }, { merge: true });
 
-            await userActivityHistory({ local_uid, batch, type: 'comment_like', post_id, comment_id })
+            await userActivityHistory({ local_uid, batch, type: 'comment_like', other_user_uid: post_owner.owner.uid, post_id, comment_id })
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
-
-            // await createNewNotification({ 
-            //     batch, 
-            //     timestamp, 
-            //     local_uid, 
-            //     notification_type: 'comment_liked',
-            //     notification_owner_uid: comment_data?.owner.uid, 
-            //     content: { 
-            //         ref_id: comment_id, 
-            //         post_ref_id: post_id, 
-            //         text: comment_data.text,
-            //     },
-            // }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+            
+            await deleteNotificationEntry({ 
+                batch, 
+                timestamp, 
+                local_uid, 
+                notification_type: 'comment_liked',
+                notification_owner_uid: comment_data?.owner.uid, 
+                content: { 
+                    ref_id: comment_id, 
+                    post_ref_id: post_id, 
+                },
+            }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });

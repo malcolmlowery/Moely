@@ -51,7 +51,7 @@ exports.createComment = async (req, res) => {
             local_uid,
             type: 'comment',
             comment_id: user_info_doc.id,
-            text,
+            text: post_owner.text,
             post_id,
             other_user_uid: post_owner.owner.uid, 
             username: post_owner.owner.username, 
@@ -114,15 +114,15 @@ exports.updateComment = async (req, res) => {
                 }, { merge: true });
             });
 
-        await getFirestore().collectionGroup('activities')
-            .where('post_id_ref', '==', post_id)
-            .where('comment_id', '==', comment_id)
-            .get().then(snapshot => {
-                if(snapshot.empty) return;
-                snapshot.forEach(doc => {
-                    batch.set(doc.ref, { text }, { merge: true })
-                });
-            });
+        // await getFirestore().collectionGroup('activities')
+        //     .where('post_id_ref', '==', post_id)
+        //     .where('comment_id', '==', comment_id)
+        //     .get().then(snapshot => {
+        //         if(snapshot.empty) return;
+        //         snapshot.forEach(doc => {
+        //             batch.set(doc.ref, { text }, { merge: true })
+        //         });
+        //     });
 
         await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });

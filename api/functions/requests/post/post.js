@@ -5,7 +5,6 @@ exports.createPost = async (req, res) => {
     const { text } = req.body;
 
     try {
-
         const post_id = getFirestore().collection('posts').doc().id;
         const { username, occupation, profile_image } = (await getFirestore().collection('users').doc(local_uid).get()).data();
 
@@ -30,12 +29,36 @@ exports.createPost = async (req, res) => {
 };
 
 exports.updatePost = async (req, res) => {
+    const local_uid = res.locals.uid;
     const { text, post_id } = req.body;
 
     try {
+        const post = getFirestore().collection('posts').doc(post_id)
+        const post_exists = (await post.get()).exists;
 
-        await getFirestore().collection('posts')
-            .doc(post_id).set({ text, post_edited: true }, { merge: true })
+        if(!post_exists) {
+            res.status(200).send({ message: 'Operation not allowed', warning: true });
+            return;
+        };
+
+        const batch = getFirestore().batch();
+
+        batch.set(post, { text, post_edited: true }, { merge: true })
+
+        await getFirestore().collectionGroup('notification')
+            .where('content.ref_id', '==', post_id)
+            .where('notification_owner_uid', '==', local_uid)
+            .where('notification_type', 'in', ['post_liked', 'new_comment'])
+            .get().then(snapshot => {
+                if(snapshot.empty) return;
+                snapshot.forEach(doc => {
+                    batch.set(doc.ref, { 
+                        content: { text },
+                    }, { merge: true });
+                });
+            }).catch(() => { throw Error('There was an error updating your post. Please try again.') });
+
+        await batch.commit()
             .catch(() => { throw Error('There was an error updating your post. Please try again.') });
 
         res.status(200).send({ message: 'Post updated!', text, post_edited: true });
@@ -50,7 +73,6 @@ exports.deletePost = async (req, res) => {
     const { post_id } = req.body;
 
     try {
-
         const post = getFirestore().collection('posts').doc(post_id);
         const hidden_post = getFirestore().collection('hidden_posts').doc(post_id);
         const reported_post = getFirestore().collection('reported_posts').doc(post_id);
@@ -115,7 +137,6 @@ exports.getPost = async (req, res) => {
     const { post_id } = req.body;
 
     try {
-
         const post = await getFirestore().collection('posts').doc(post_id)
             .get().then(doc => doc.data())
             .catch(() => { throw 'There was an error creating your profile. Please try again.' });

@@ -19,7 +19,7 @@ exports.createUser = functions.https.onRequest(async (req, res) => {
 });
 
 exports.getUserProfile = async (req, res) => {
-    const { user_profile_uid } = req.body;
+    const { user_profile_uid } = req.query;
 
     try {
 
@@ -39,14 +39,14 @@ exports.getUserProfile = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
     const local_uid = res.locals.uid;
     const { username, email, bio, location, occupation } = req.body;
-
+    
     const user = getFirestore().collection('users').doc(local_uid);
     const user_in_subcollections = getFirestore().collectionGroup('users')
         .where('owner.uid', '==', local_uid);
     const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
         .where('owner.uid', '==', local_uid);
     const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
-        .where('uid', '==', local_uid);
+        .where('content_owner_uid', '==', local_uid);
     const posts = getFirestore().collection('posts')
         .where('owner.uid', '==', local_uid);
 

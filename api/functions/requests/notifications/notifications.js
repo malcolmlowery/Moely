@@ -259,7 +259,8 @@ exports.deleteNotificationEntry = async (args) => {
             };
 
             if(notification_type === 'comment_liked') {
-                await getFirestore().collection(`liked_posts/${content.ref_id}/liked_comments`)
+                console.log('2')
+                await getFirestore().collection(`comments/${content.post_ref_id}/liked_comments`)
                     .where('owner.uid', 'not-in', [notification_owner_uid, local_uid])
                     .limit(2)
                     .get().then(snapshot => {
@@ -277,27 +278,27 @@ exports.deleteNotificationEntry = async (args) => {
                 };
 
                 batch.set(notification_doc.ref, {
-                    timestamp: most_recent_comments[0].liked_at,
+                    timestamp: most_recent_comments[0].comment_liked_at,
                     user_activity_uids: most_recent_comments.length > 1 ? 
                         [most_recent_comments[0].owner.uid, most_recent_comments[1].owner.uid] :
                         [most_recent_comments[0].owner.uid],
                     user_activity_info: most_recent_comments.length > 1 ? 
                         [
                             {
-                                user_activity_createdAt: most_recent_comments[0].liked_at,
+                                user_activity_createdAt: most_recent_comments[0].comment_liked_at,
                                 uid: most_recent_comments[0].owner.uid,
                                 username: most_recent_comments[0].owner.username,
                                 profileImage: most_recent_comments[0].owner.profileImage,
                             },
                             {
-                                user_activity_createdAt: most_recent_comments[1].liked_at,
+                                user_activity_createdAt: most_recent_comments[1].comment_liked_at,
                                 uid: most_recent_comments[1].owner.uid,
                                 username: most_recent_comments[1].owner.username,
                                 profileImage: most_recent_comments[1].owner.profileImage,
                             }
                         ] : [
                             {
-                                user_activity_createdAt: most_recent_comments[0].liked_at,
+                                user_activity_createdAt: most_recent_comments[0].comment_liked_at,
                                 uid: most_recent_comments[0].owner.uid,
                                 username: most_recent_comments[0].owner.username,
                                 profileImage: most_recent_comments[0].owner.profileImage,

@@ -1,8 +1,8 @@
 const { getFirestore } = require('../../modules');
 
-exports.getNewsfeedPosts = async (req, res) => {
+exports.getUserProfileNewsfeed = async (req, res) => {
     const local_uid = res.locals.uid;
-    let { last_post_id } = req.query;
+    let { last_post_id, user_profile_uid } = req.query;
 
     try {
         const posts = [];
@@ -29,7 +29,7 @@ exports.getNewsfeedPosts = async (req, res) => {
             });
 
         if(!last_post_id) {
-            let post_query = getFirestore().collection('posts')
+            let post_query = getFirestore().collection('posts').where('owner.uid', '==', user_profile_uid)
                 
             hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
             reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
@@ -67,7 +67,7 @@ exports.getNewsfeedPosts = async (req, res) => {
                 return;
             };
 
-            let post_query = getFirestore().collection('posts')
+            let post_query = getFirestore().collection('posts').where('owner.uid', '==', user_profile_uid)
                 
             hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
             reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;

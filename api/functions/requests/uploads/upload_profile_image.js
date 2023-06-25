@@ -64,7 +64,7 @@ exports.uploadProfileImage = async (req, res) => {
                 const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
                     .where('owner.uid', '==', local_uid);
                     const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
-                        .where('uid', '==', local_uid);
+                        .where('content_owner_uid', '==', local_uid);
                 const posts = getFirestore().collection('posts')
                     .where('owner.uid', '==', local_uid);
 

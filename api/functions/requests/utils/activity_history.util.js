@@ -104,12 +104,16 @@ exports.userActivityHistory = async (args) => {
         };
 
         if(!doc_empty) {
-            await activity_doc.get().then(async (snapshot) => {
-                const doc = snapshot.docs[snapshot.docs.length - 1].ref;
-                batch.delete(doc);
-            }).catch(() => { throw Error('An internal error occurred. Please try again') });
-
-            batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(-1) }, { merge: true });
+            await getFirestore().collectionGroup('activities')
+                .where('post_id_ref', '==', post_id)
+                .where('comment_id', '==', comment_id)
+                .get().then(snapshot => {
+                    if(snapshot.empty) return;
+                    snapshot.forEach(doc => {
+                        batch.set(doc.ref, { content_deleted: true }, { merge: true })
+                    });
+                });
+                
             return;
         };
     };

@@ -147,7 +147,6 @@ exports.deleteNotificationEntry = async (args) => {
                     .where('isPostOwner', '==', false)
                     .limit(2).orderBy('created_at', 'desc')
                     .get().then(snapshot => {
-                        console.log(snapshot.size)
                         snapshot.forEach(doc => most_recent_comments.push(doc.data()))
                     }).catch((error) =>  console.log(error));  
                 
@@ -213,7 +212,6 @@ exports.deleteNotificationEntry = async (args) => {
                     .where('owner.uid', 'not-in', [notification_owner_uid, local_uid])
                     .limit(2)
                     .get().then(snapshot => {
-                        console.log(snapshot.size)
                         snapshot.forEach(doc => most_recent_comments.push(doc.data()))
                     }).catch(() => { throw Error('An internal error occurred. Please try again') }); 
                     
@@ -259,12 +257,10 @@ exports.deleteNotificationEntry = async (args) => {
             };
 
             if(notification_type === 'comment_liked') {
-                console.log('2')
                 await getFirestore().collection(`comments/${content.post_ref_id}/liked_comments`)
                     .where('owner.uid', 'not-in', [notification_owner_uid, local_uid])
                     .limit(2)
                     .get().then(snapshot => {
-                        console.log(snapshot.size)
                         snapshot.forEach(doc => most_recent_comments.push(doc.data()))
                     }).catch(() => { throw Error('An internal error occurred. Please try again') }); 
                     
@@ -314,7 +310,6 @@ exports.deleteNotificationEntry = async (args) => {
                     .where('owner.uid', '!=', local_uid)
                     .limit(2).orderBy('followed_on', 'desc')
                     .get().then(snapshot => {
-                        console.log(snapshot.size)
                         snapshot.forEach(doc => most_recent_comments.push(doc.data()))
                     }).catch((error) =>  console.log(error));  
                 

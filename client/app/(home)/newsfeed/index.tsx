@@ -1,7 +1,10 @@
+import { useRouter } from 'expo-router';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import Card from '../../../components/Card';
 
 const Newsfeed = () => {
+    const router = useRouter();
+
     return (
         <KeyboardAwareFlatList 
             style={{ paddingTop: 3 }}
@@ -21,7 +24,7 @@ const Newsfeed = () => {
                         post_liked={true}
                         number_of_post_likes={52}
                         number_of_post_comments={113}
-                        navigate_to_post={() => console.log('Navigate to post')}
+                        navigate_to_post={() => router.push('post')}
                         navigate_to_profile={() => console.log('Navigate to profile')}
                         query_update_post={() => console.log('Update Post')}
                         query_like_post={() => console.log('Like/Unlike Post')}

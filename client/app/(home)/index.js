@@ -1,4 +1,4 @@
-import "expo-router/entry";
+import 'expo-router/entry';
 import { Redirect } from 'expo-router';
 
 const Index = () => {

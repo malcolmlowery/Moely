@@ -2,26 +2,7 @@ import styled from 'styled-components/native';
 import { useState } from 'react';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { Alert, Keyboard } from 'react-native';
-
-interface CardI {
-    post_id: string,
-    is_post_owner: boolean,
-    username: string,
-    profileImage: string | null,
-    occupation: string | null,
-    timestamp: string | null,
-    text: string,
-    post_liked: boolean,
-    number_of_post_likes: number,
-    number_of_post_comments: number,
-    navigate_to_post?: () => void,
-    navigate_to_profile?: () => void,
-    query_update_post: () => void,
-    query_like_post: () => void,
-    query_delete_post: () => void,
-    query_report_post: () => void,
-    query_hide_post: () => void,
-};
+import { CardI } from '../types/card.interface';
 
 const Card = ({
     post_id,
@@ -41,7 +22,7 @@ const Card = ({
     query_delete_post,
     query_report_post,
     query_hide_post,
-}: CardI) => {
+}: Partial<CardI>) => {
     const [showOptions, setShowOptions] = useState(false);
     const [editTextActive, setEditTextActive] = useState(false);
     const [editedPostText, setEditedPostText] = useState(null);
@@ -129,48 +110,50 @@ const Card = ({
     return(
         <Pressable onPress={() => Keyboard.dismiss()}>
             <Container>
-                <Pressable onPress={() => navigateToProfile()}>
-                    <Header>
+                <Header>
+                    <Pressable onPress={() => navigateToProfile()}>
                         <ProfileImage source={{ uri: profileImage }} />
-                        <HeaderRight>
-                            <HeaderTop>
+                    </Pressable>
+                    <HeaderRight>
+                        <HeaderTop>
+                            <Pressable onPress={() => navigateToProfile()}>
                                 <Username>{username}</Username>
-                                <Spacer />
-                                { !showOptions && <Timestamp>{timestamp}</Timestamp> }
-                                { showOptions && is_post_owner && 
-                                    <>
-                                        <TouchableOpacity style={{ marginRight: 18 }} onPress={() => handleDeletePost()}>
-                                            <OptionText style={{ color: '#f34a4a' }}>Delete</OptionText>
-                                        </TouchableOpacity>
-                                        { !editTextActive && editedPostText !== text &&
-                                            <TouchableOpacity style={{ marginRight: 16 }} onPress={() => handleEditTextActive()}>
-                                                <OptionText style={{ color: '#6C65F6' }}>Edit</OptionText>
-                                            </TouchableOpacity>
-                                        }
-                                        { editTextActive &&
-                                            <TouchableOpacity style={{ marginRight: 16 }} onPress={() => handleUndoEditedPostText()}>
-                                                <OptionText style={{ color: editedPostText !== text ? '#363636' : '#dedede' }}>Undo</OptionText>
-                                            </TouchableOpacity>
-                                        }
-                                    </>
-                                }
-                                { is_post_owner && 
-                                    <TouchableOpacity onPress={() => handleShowOptions()}>
-                                        <AntDesign name='ellipsis1' color='#BBB' size={30} style={{ top: -4 }} />
+                            </Pressable>
+                            <Spacer />
+                            { !showOptions && <Timestamp>{timestamp}</Timestamp> }
+                            { showOptions && is_post_owner && 
+                                <>
+                                    <TouchableOpacity style={{ marginRight: 18 }} onPress={() => handleDeletePost()}>
+                                        <OptionText style={{ color: '#f34a4a' }}>Delete</OptionText>
                                     </TouchableOpacity>
-                                }
-                                { !is_post_owner && 
-                                    <TouchableOpacity onPress={() => handleHideReportPostOptions()}>
-                                        <Ionicons name='md-alert-circle' color='#363636' size={19} />
-                                    </TouchableOpacity>  
-                                }
-                            </HeaderTop>
-                            <HeaderBottom>
-                                <Occupation>{occupation}</Occupation>
-                            </HeaderBottom>
-                        </HeaderRight>
-                    </Header>
-                </Pressable>
+                                    { !editTextActive && editedPostText !== text &&
+                                        <TouchableOpacity style={{ marginRight: 16 }} onPress={() => handleEditTextActive()}>
+                                            <OptionText style={{ color: '#6C65F6' }}>Edit</OptionText>
+                                        </TouchableOpacity>
+                                    }
+                                    { editTextActive &&
+                                        <TouchableOpacity style={{ marginRight: 16 }} onPress={() => handleUndoEditedPostText()}>
+                                            <OptionText style={{ color: editedPostText !== text ? '#363636' : '#dedede' }}>Undo</OptionText>
+                                        </TouchableOpacity>
+                                    }
+                                </>
+                            }
+                            { is_post_owner && 
+                                <TouchableOpacity onPress={() => handleShowOptions()}>
+                                    <AntDesign name='ellipsis1' color='#BBB' size={30} style={{ top: -4 }} />
+                                </TouchableOpacity>
+                            }
+                            { !is_post_owner && 
+                                <TouchableOpacity onPress={() => handleHideReportPostOptions()}>
+                                    <Ionicons name='md-alert-circle' color='#363636' size={19} />
+                                </TouchableOpacity>  
+                            }
+                        </HeaderTop>
+                        <HeaderBottom>
+                            <Occupation>{occupation}</Occupation>
+                        </HeaderBottom>
+                    </HeaderRight>
+                </Header>
 
                     <Pressable onPress={() => setShowMoreText(!showMoreText)}>
                         <Body>

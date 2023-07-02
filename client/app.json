@@ -27,6 +27,14 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "scheme": "myapp"
+    "scheme": "myapp",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Moely accesses your photos to allow you to upload new images to your profile."
+        }
+      ]
+    ]
   }
 }

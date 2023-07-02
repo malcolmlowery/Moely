@@ -2,13 +2,13 @@ const { functions, getAuth, getFirestore, Timestamp } = require('../../modules')
 
 exports.createUser = functions.https.onRequest(async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, password } = req.body;
         const user_doc = getFirestore().collection('users').doc();
 
-        await getAuth().createUser({ displayName: username, email, password, uid: user_doc.id })
+        await getAuth().createUser({ displayName: username, password, uid: user_doc.id })
             .catch((error) => { throw error });
 
-        await user_doc.create({ uid: user_doc.id, username, email, created_at: Timestamp.now().seconds })
+        await user_doc.create({ uid: user_doc.id, username, created_at: Timestamp.now().seconds })
             .catch(() => { throw 'There was an error creating your profile. Please try again.' });
             
         res.status(200).send({ message: 'Account created successfully!' });
@@ -23,11 +23,11 @@ exports.getUserProfile = async (req, res) => {
 
     try {
 
-        const { username, profile_image, cover_photo, location, occupation, bio } = await getFirestore().collection('users').doc(user_profile_uid)
+        const { username, profile_image, cover_photo, location, occupation, about_me } = await getFirestore().collection('users').doc(user_profile_uid)
             .get().then(doc => doc.data())
             .catch(() => { throw 'There was an error creating your profile. Please try again.' });
 
-        const user = { username, profile_image, cover_photo, location, occupation, bio };
+        const user = { username, profile_image, cover_photo, location, occupation, about_me };
 
         res.status(200).send(user);
 
@@ -38,7 +38,7 @@ exports.getUserProfile = async (req, res) => {
 
 exports.updateUserProfile = async (req, res) => {
     const local_uid = res.locals.uid;
-    const { username, email, bio, location, occupation } = req.body;
+    const { username, about_me, location, occupation, place_of_work, important_to_me } = req.body;
     
     const user = getFirestore().collection('users').doc(local_uid);
     const user_in_subcollections = getFirestore().collectionGroup('users')
@@ -77,7 +77,7 @@ exports.updateUserProfile = async (req, res) => {
         const batch = getFirestore().batch();
         
         if(user_exists) {
-            batch.set(user, { username, email, bio, location, occupation }, { merge: true });
+            batch.set(user, { username, about_me, location, occupation, place_of_work, important_to_me }, { merge: true });
         }
 
         if(number_of_posts > 0) {
@@ -115,7 +115,7 @@ exports.updateUserProfile = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
-        await getAuth().updateUser(local_uid, { displayName: username, email })
+        await getAuth().updateUser(local_uid, { displayName: username })
             .catch(error => { throw error });
 
 

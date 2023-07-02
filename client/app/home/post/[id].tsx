@@ -1,13 +1,15 @@
 import styled from 'styled-components/native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import Card from '../../../components/Card';
 import Comment from '../../../components/Comment';
+import { CardI } from '../../../types/card.interface';
 const Moely_Logo_01 = require('../../../assets/logos/moely_logo_01.png');
 
 const PostDetails = () => {
     const router = useRouter();
-
+    const { post_id }: Partial<CardI> = useLocalSearchParams();
+    
     return(
         <>
             <Stack.Screen 

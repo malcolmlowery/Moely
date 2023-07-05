@@ -3,7 +3,7 @@ const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 exports.createPost = async (req, res) => {
     const local_uid = res.locals.uid;
     const { text } = req.body;
-
+    
     try {
         const post_id = getFirestore().collection('posts').doc().id;
         const { username, occupation, profile_image } = (await getFirestore().collection('users').doc(local_uid).get()).data();
@@ -11,7 +11,7 @@ exports.createPost = async (req, res) => {
         const post = {
             post_id,
             created_at: Timestamp.now().seconds,
-            text: Math.random(),
+            text,
             total_likes: 0,
             total_comments: 0,
             owner: { uid: local_uid, username, profile_image, occupation }
@@ -21,7 +21,7 @@ exports.createPost = async (req, res) => {
             .doc(post_id).create(post)
             .catch(() => { throw Error('There was an error creating your post. Please try again.') });
 
-        res.status(200).send({ message: 'Post created!', post });
+        res.status(200).send({ message: 'Post created!', post: { ...post, is_post_owner: true } });
             
     } catch(error) {
         res.status(500).send(error)

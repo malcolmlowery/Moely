@@ -5,6 +5,7 @@ const { userActivityHistory } = require('../utils/activity_history.util');
 exports.likePost = async (req, res) => {
     const local_uid = res.locals.uid;
     const { post_id, post_liked } = req.body;
+    console.log({post_id, post_liked})
 
     try {
 
@@ -68,7 +69,7 @@ exports.likePost = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-            res.status(200).send({ message: 'Post liked!' });
+            res.status(200).send({ message: 'Post liked!', post_liked: true });
             return;
         } 
         
@@ -97,7 +98,7 @@ exports.likePost = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-            res.status(200).send({ message: 'Post unliked!' });
+            res.status(200).send({ message: 'Post unliked!', post_liked: false  });
             return;
         }
 

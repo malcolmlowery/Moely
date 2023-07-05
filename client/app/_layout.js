@@ -3,6 +3,9 @@ import { Stack, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 const Moely_Logo_01 = require('../assets/logos/moely_logo_01.png');
 
+import { Provider } from 'react-redux'
+import { store } from '../services/store';
+
 const Layout = () => {
     const segments = useSegments();
     const inSettingsTabs = 
@@ -13,7 +16,7 @@ const Layout = () => {
         segments[1] === 'user-activity-history' ||
         segments[1] === 'terms-and-conditions' ||
         segments[1] === 'privacy' ||
-        segments[1] === 'account' && true;
+        segments[1] === 'acciount' && true;
         
     const renderHeaderLeft = () => {
         const current_tab_bar_name = segments[1];
@@ -35,9 +38,6 @@ const Layout = () => {
                 <>
                     { !inSettingsTabs &&
                         <>
-                            <IconButton>
-                                <Ionicons name='mail' color='#363636' size={18} />
-                            </IconButton>
                             <Pressable>
                                 <Avatar source={{ uri: 'https://www.barrowneuro.org/wp-content/uploads/Remiel-Gonda-OR-Nurse-e1566942309945.jpg' }} />
                             </Pressable>
@@ -47,9 +47,11 @@ const Layout = () => {
             )
         },
     };
-
+    
     return(
-        <Stack screenOptions={{ ...screenOptions }} />
+        <Provider store={store}>
+            <Stack screenOptions={{ ...screenOptions }} />
+        </Provider>
     );
 };
 

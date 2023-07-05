@@ -110,7 +110,7 @@ const ListGroup = styled.View`
 const ListItem = styled.TouchableOpacity`
     align-items: center;
     border-style: solid;
-    border-bottom-color: #ededed;
+    border-color: #ededed;
     border-bottom-width: 1px;
     flex-direction: row;
     justify-content: space-between;

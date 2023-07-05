@@ -1,5 +1,5 @@
 import styled from 'styled-components/native';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter, useSearchParams } from 'expo-router';
 import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
 import Card from '../../../components/Card';
 import Comment from '../../../components/Comment';
@@ -8,7 +8,9 @@ const Moely_Logo_01 = require('../../../assets/logos/moely_logo_01.png');
 
 const PostDetails = () => {
     const router = useRouter();
-    const { post_id }: Partial<CardI> = useLocalSearchParams();
+    const { post_id, comment_id }: any = useSearchParams();
+
+    console.log({ post_id, comment_id })
     
     return(
         <>

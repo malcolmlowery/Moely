@@ -13,8 +13,8 @@ const Card = ({
     timestamp,
     text,
     post_liked,
-    number_of_post_likes,
-    number_of_post_comments,
+    total_likes,
+    total_comments,
     navigate_to_post,
     navigate_to_profile,
     query_update_post,
@@ -31,12 +31,20 @@ const Card = ({
 
     const post_text = text.length > 380 && !showMoreText ? `${text.slice(0, 380)}... ` : text + ' ';
 
-    const handleUpdatePost = () => {
-        query_update_post();
+    const handleUpdatePost = async () => {
+        await query_update_post(editedPostText)
+            .then(({ error }) => {
+                if(!error) {
+                    setEditTextActive(false)
+                    setEditedPostText(null);
+                    setShowOptions(!showOptions);
+                };
+            });
     };
 
     const handleLikePost = () => {
-        query_like_post();
+        setPostIsLiked(!postIsLiked)
+        query_like_post(!postIsLiked);
     };
 
     const handleShowOptions = () => {
@@ -106,13 +114,13 @@ const Card = ({
             ],
         );
     };
-
+    
     return(
         <Pressable onPress={() => Keyboard.dismiss()}>
             <Container>
                 <Header>
                     <Pressable onPress={() => navigateToProfile()}>
-                        <ProfileImage source={{ uri: profileImage }} />
+                        <ProfileImage source={{ uri: profileImage ? profileImage : 'https://img.freepik.com/premium-vector/stethoscope-icon-flat-style-heart-diagnostic-vector-illustration-isolated-background-medicine-sign-business-concept_157943-866.jpg?w=2000' }} />
                     </Pressable>
                     <HeaderRight>
                         <HeaderTop>
@@ -149,9 +157,11 @@ const Card = ({
                                 </TouchableOpacity>  
                             }
                         </HeaderTop>
-                        <HeaderBottom>
-                            <Occupation>{occupation}</Occupation>
-                        </HeaderBottom>
+                        { occupation &&
+                            <HeaderBottom>
+                                <Occupation>{occupation}</Occupation>
+                            </HeaderBottom>
+                        }
                     </HeaderRight>
                 </Header>
 
@@ -182,10 +192,10 @@ const Card = ({
 
                 <Footer>
                     <TouchableOpacity>
-                        <Text style={{ color: '#6C65F6' }}>{number_of_post_likes} likes</Text>
+                        <Text style={{ color: '#6C65F6' }}>{total_likes} likes</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => navigateToPost()}>
-                        <Text style={{ color: '#969696' }}>{number_of_post_comments} comments</Text>
+                        <Text style={{ color: '#969696' }}>{total_comments} comments</Text>
                     </TouchableOpacity>
 
                     <Spacer />

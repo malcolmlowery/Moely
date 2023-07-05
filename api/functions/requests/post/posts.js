@@ -3,6 +3,12 @@ const { getFirestore } = require('../../modules');
 exports.getNewsfeedPosts = async (req, res) => {
     const local_uid = res.locals.uid;
     let { last_post_id } = req.query;
+    console.log(last_post_id)
+
+    if(last_post_id === 'end_of_list') {
+        res.status(200).send({ posts: [], last_post_id: 'end_of_list', message: 'Operation not allowed'});
+        return;
+    };
 
     try {
         const posts = [];
@@ -25,16 +31,24 @@ exports.getNewsfeedPosts = async (req, res) => {
         await getFirestore().collection('reported_posts')
             .where('user_uids', 'array-contains', local_uid)
             .get().then(snapshot => {
-                snapshot.forEach(doc => reported_posts.push(doc.data().post_id_ref));
+                snapshot.forEach(doc => hidden_posts.push(doc.data().post_id_ref));
+            });
+
+        await getFirestore().collection('posts')
+            .where('flagged_post', '==', true)
+            .get().then(snapshot => {
+                snapshot.forEach(doc => hidden_posts.push(doc.data().post_id));
             });
 
         if(!last_post_id) {
             let post_query = getFirestore().collection('posts')
                 
             hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
-            reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
-                
-            await post_query.orderBy('created_at', 'desc').limit(3)
+            // reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
+
+            await post_query
+                .orderBy('created_at', 'desc')
+                .limit(3)
                 .get().then(snapshot => {
 
                     if(snapshot.empty) {
@@ -43,20 +57,24 @@ exports.getNewsfeedPosts = async (req, res) => {
                     };
                     
                     snapshot.forEach(doc => {
-                        if(liked_posts.length > 0) {
-                            liked_posts.map(liked_post_id_ref => {
-                                if(liked_post_id_ref === doc.data().post_id) {
-                                    posts.push({ ...doc.data(), post_liked: true });
-                                } else {
-                                    posts.push(doc.data());
-                                };
+                        const liked_post_exists = liked_posts.find((post_id) => doc.data().post_id === post_id);
+
+                        if(liked_post_exists) {
+                            posts.push({ 
+                                ...doc.data(), 
+                                post_liked: true, 
+                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
                             });
                         } else {
-                            posts.push(doc.data());
+                            posts.push({ 
+                                ...doc.data(), 
+                                post_liked: false, 
+                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                            });
                         };
                     });
-
-                    res.status(200).send({ posts, last_post_id: snapshot.size === 3 ? posts[posts.length - 1].post_id : undefined });
+                    console.log(posts)
+                    res.status(200).send({ posts, last_post_id: snapshot.size >= 3 ? posts[posts.length - 1].post_id : 'end_of_list' });
                 });
 
         } else {
@@ -70,8 +88,8 @@ exports.getNewsfeedPosts = async (req, res) => {
             let post_query = getFirestore().collection('posts')
                 
             hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
-            reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
-                
+            // reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
+        
             await post_query
                 .orderBy('created_at', 'desc')
                 .startAfter(last_post)
@@ -79,20 +97,28 @@ exports.getNewsfeedPosts = async (req, res) => {
                 .get().then(snapshot => {
                     
                     if(snapshot.empty) {
-                        res.status(200).send({ posts: [], message: 'You have reached the end' });
+                        res.status(200).send({ posts: [], last_post_id: 'end_of_list', message: 'You have reached the end' });
                         return;
                     };
 
                     snapshot.forEach(doc => {
-                        liked_posts.map(liked_post_id_ref => {
-                            if(liked_post_id_ref === doc.data().post_id) {
-                                posts.push({ ...doc.data(), post_liked: true });
-                            } else {
-                                posts.push(doc.data());
-                            };
-                        });
-                    });
+                        const liked_post_exists = liked_posts.find((post_id) => doc.data().post_id === post_id);
 
+                        if(liked_post_exists) {
+                            posts.push({ 
+                                ...doc.data(), 
+                                post_liked: true, 
+                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                            });
+                        } else {
+                            posts.push({ 
+                                ...doc.data(), 
+                                post_liked: false, 
+                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                            });
+                        };
+                    });
+                    
                     res.status(200).send({ posts, last_post_id: posts[posts.length - 1].post_id });
                 });
 

@@ -1,9 +1,11 @@
 import styled from 'styled-components/native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { useWindowDimensions } from 'react-native';
 
 const TabNavigator = () => {
-    const tabOptions = {};
+    const layout = useWindowDimensions();
+    const router = useRouter();
 
     return(
         <Tabs screenOptions={({ route }) => ({ 
@@ -34,7 +36,3 @@ const TabNavigator = () => {
 };
 
 export default TabNavigator;
-
-const TextLabel = styled.Text`
-    font-size: 12px;
-`;

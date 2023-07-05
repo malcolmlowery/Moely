@@ -28,7 +28,9 @@ const postsData = [
 
 const Profile = () => {
     const router = useRouter();
-    const { other_user_uid: uid, username }: any = useSearchParams();
+    const { other_user_uid }: any = useSearchParams();
+    
+    console.log({ other_user_uid })
 
     const [showMoreText, setShowMoreText] = useState(false);
     const bio = bio_text.length > 380 && !showMoreText ? `${bio_text.slice(0, 200)}... ` : bio_text + ' ';
@@ -171,8 +173,6 @@ const Container = styled.View``;
 const Wallpaper = styled.Image`
     background-color: gray;
     height: 170px;
-    /* margin: 16px; */
-    /* border-radius: 12px; */
 `;
 
 const Header = styled.View`

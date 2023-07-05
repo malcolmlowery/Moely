@@ -136,7 +136,7 @@ const EditProfile = () => {
                 style={{ 
                     flex: 1, 
                     padding: 16, 
-                    marginBottom: 60, 
+                    marginBottom: 90, 
                     overflow: 'visible'
                 }}>
 
@@ -278,7 +278,7 @@ const Username = styled.Text`
     color: #121212;
     font-size: 19px;
     font-weight: 600;
-    margin-top: 10px;
+    margin-top: 12px;
     margin-bottom: 4px;
 `;
 

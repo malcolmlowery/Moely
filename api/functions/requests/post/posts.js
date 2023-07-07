@@ -3,10 +3,9 @@ const { getFirestore } = require('../../modules');
 exports.getNewsfeedPosts = async (req, res) => {
     const local_uid = res.locals.uid;
     let { last_post_id } = req.query;
-    console.log(last_post_id)
 
     if(last_post_id === 'end_of_list') {
-        res.status(200).send({ posts: [], last_post_id: 'end_of_list', message: 'Operation not allowed'});
+        res.status(200).send({ posts: [], last_post_id: 'end_of_list', message: 'Operation not allowed' });
         return;
     };
 
@@ -48,7 +47,7 @@ exports.getNewsfeedPosts = async (req, res) => {
 
             await post_query
                 .orderBy('created_at', 'desc')
-                .limit(3)
+                .limit(13)
                 .get().then(snapshot => {
 
                     if(snapshot.empty) {
@@ -73,7 +72,7 @@ exports.getNewsfeedPosts = async (req, res) => {
                             });
                         };
                     });
-                    console.log(posts)
+                    
                     res.status(200).send({ posts, last_post_id: snapshot.size >= 3 ? posts[posts.length - 1].post_id : 'end_of_list' });
                 });
 
@@ -81,7 +80,7 @@ exports.getNewsfeedPosts = async (req, res) => {
             const last_post = await getFirestore().collection('posts').doc(last_post_id).get();
 
             if(!last_post.exists) {
-                res.status(200).send({ posts: [], message: 'Operation not allowed'});
+                res.status(200).send({ posts: [], message: 'Operation not allowed' });
                 return;
             };
 
@@ -93,7 +92,7 @@ exports.getNewsfeedPosts = async (req, res) => {
             await post_query
                 .orderBy('created_at', 'desc')
                 .startAfter(last_post)
-                .limit(3)
+                .limit(13)
                 .get().then(snapshot => {
                     
                     if(snapshot.empty) {

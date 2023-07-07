@@ -1,9 +1,10 @@
 import styled from 'styled-components/native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
-import Lottie from 'lottie-react-native';
 import { Alert } from 'react-native';
+import { KeyboardAwareFlatList } from 'react-native-keyboard-aware-scroll-view';
+import moment from 'moment';
+import Lottie from 'lottie-react-native';
 
 // Types
 import { CardI } from '../../types/card.interface';
@@ -11,6 +12,7 @@ import { CardI } from '../../types/card.interface';
 // Components
 import Card from '../../components/Card';
 import CreatePostButton from '../../components/CreatePostButton';
+import BottomSheet from '../../components/BottomSheet';
 
 // RTK Query
 import { 
@@ -22,8 +24,8 @@ import {
     useDeletPostMutation,
     useHidePostMutation,
     useReportPostMutation,
- } from '../../services/endpoints/post';import BottomSheet from '../../components/BottomSheet';
-;
+ } from '../../services/endpoints/post';
+import { useCreateCommentMutation } from '../../services/endpoints/comments';
 
 const Newsfeed = () => {
     const router = useRouter();
@@ -39,6 +41,7 @@ const Newsfeed = () => {
 
     const { data: newsfeed_data, isLoading: isLoadingNewsfeedData, isFetching: isFetchingNewsfeedData, refetch: refetchNewsfeedData } = useGetNewsfeedPostsQuery();
     const [getMoreNewsfeedPosts, { isLoading: isLoadingMoreNewsfeedData }] = useGetMoreNewsfeedPostsMutation();
+    const [createCommentQuery, {isLoading: isLoadingComment, isError: errorLoadingComment }] = useCreateCommentMutation();
     
     if( 
         errorCreatingPost ||
@@ -70,7 +73,9 @@ const Newsfeed = () => {
                 refreshing={isFetchingNewsfeedData}
                 onEndReached={() => {
                     if(!isLoadingNewsfeedData && newsfeed_data?.last_post_id !== 'end_of_list') {
-                        getMoreNewsfeedPosts({ last_post_id: newsfeed_data?.last_post_id })
+                        if(!isLoadingMoreNewsfeedData) {
+                            getMoreNewsfeedPosts({ last_post_id: newsfeed_data?.last_post_id });
+                        };
                     };
                 }}
                 ListFooterComponent={() => {
@@ -91,12 +96,11 @@ const Newsfeed = () => {
                 data={newsfeed_data?.posts}
                 keyExtractor={item => item.post_id}
                 renderItem={({ item }) => {
-                    
+                    const timestamp = moment.unix(item.created_at).fromNow();
                     const {
                         post_id,
                         is_post_owner,
                         owner,
-                        timestamp,
                         text,
                         post_liked,
                         total_likes,
@@ -110,7 +114,7 @@ const Newsfeed = () => {
                             username={owner.username}
                             profileImage={owner.profileImage}
                             occupation={owner.occupation}
-                            timestamp={timestamp}
+                            created_at={timestamp}
                             text={text}
                             post_liked={post_liked}
                             total_likes={total_likes}
@@ -127,7 +131,8 @@ const Newsfeed = () => {
                             query_like_post={(value) => !likePostQueryActive && likePostQuery({ post_id, post_liked: value })}
                             query_delete_post={() => !isDeletingPost && deletPostQuery({ post_id })}
                             query_report_post={() => !isReportingPost && reportPostQuery({ post_id })}
-                            query_hide_post={() => isHidingPost && hidePostQuery({ post_id })}
+                            query_hide_post={() => !isHidingPost && hidePostQuery({ post_id })}
+                            query_create_comment={(text) => !isLoadingComment && createCommentQuery({ post_id, text })}
                         />
                     )
                 }}

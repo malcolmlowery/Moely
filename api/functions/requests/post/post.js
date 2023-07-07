@@ -134,14 +134,34 @@ exports.deletePost = async (req, res) => {
 };
 
 exports.getPost = async (req, res) => {
-    const { post_id } = req.body;
+    const local_uid = res.locals.uid;
+    const { post_id } = req.query;
 
     try {
-        const post = await getFirestore().collection('posts').doc(post_id)
-            .get().then(doc => doc.data())
-            .catch(() => { throw 'There was an error creating your profile. Please try again.' });
+        const liked_posts = [];
 
-        res.status(200).send(post);
+        const post = getFirestore().collection('posts').doc(post_id);
+        const post_exists = (await post.get()).exists;
+
+        if(!post_exists) {
+            res.status(200).send({ message: 'This post no longer exists', warning: true });
+            return;
+        };
+
+        await getFirestore().collection('liked_posts')
+            .where('post_id_ref', '==', post_id)
+            .where('user_uids', 'array-contains', local_uid)
+            .get().then(snapshot => {
+                snapshot.forEach(doc => liked_posts.push(doc.data().post_id_ref));
+            });
+            
+        await post.get().then(doc => {
+            res.status(200).send({ 
+                ...doc.data(), 
+                is_post_owner: doc.data().owner.uid === local_uid ? true : false,
+                post_liked: liked_posts.length === 0 ? false : true 
+            });
+        }).catch(() => { throw Error('There was an error creating your profile. Please try again.') });
 
     } catch(error) {
         res.status(500).send(error);

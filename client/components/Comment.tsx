@@ -1,5 +1,5 @@
 import styled from 'styled-components/native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 
@@ -14,9 +14,9 @@ interface CommentI {
     comment_liked: boolean,
     total_comment_likes: number,
     navigate_to_profile: () => void,
-    query_update_comment: (a: string) => any,
+    query_update_comment: (a: string) => Promise<any>,
     query_delete_comment: () => void,
-    query_like_comment: () => void,
+    query_like_comment: (a: any) => Promise<any>,
     query_report_comment: () => void,
     query_hide_comment: () => void,
 };
@@ -42,6 +42,7 @@ const Comment = ({
     const [showOptionsActive, setShowOptionsActive] = useState(false);
     const [editTextActive, setEditTextActive] = useState(false);
     const [updatedText, setUpdatedText] = useState(null);
+    const [commentIsLiked, setCommentIstLiked] = useState(comment_liked)
 
     const toggleShowOptions = () => {
         setUpdatedText(null);
@@ -64,9 +65,25 @@ const Comment = ({
         setEditTextActive(false);
     };
 
-    const handleUpdateComment = () => {
-        query_update_comment(updatedText)
+    const handleUpdateComment = async () => {
+        await query_update_comment(updatedText)
+            .then(({ error }) => {
+                if(!error) {
+                    setEditTextActive(false);
+                    setUpdatedText(null);
+                    setShowOptionsActive(false);
+                };
+            })
     };
+
+    const handleLikeComment = () => {
+        setCommentIstLiked(!commentIsLiked)
+        query_like_comment(!commentIsLiked)
+    };
+
+    useEffect(() => {
+        setCommentIstLiked(comment_liked)
+    }, [comment_liked])
 
     const handleDeleteComment = () => {
         Alert.alert(
@@ -114,10 +131,10 @@ const Comment = ({
         <Container>
             <Header>
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => navigate_to_profile()}>
-                    <ProfileImage source={{ uri: profile_image }} />
+                <ProfileImage source={{ uri: profile_image ? profile_image : 'https://img.freepik.com/premium-vector/stethoscope-icon-flat-style-heart-diagnostic-vector-illustration-isolated-background-medicine-sign-business-concept_157943-866.jpg?w=2000' }} />
                     <UserInfo>
                         <Username>{username}</Username>
-                        <Occupation>{occupation}</Occupation>
+                        { occupation && <Occupation>{occupation}</Occupation>}
                     </UserInfo>
                 </TouchableOpacity>
                 <Spacer />
@@ -162,8 +179,8 @@ const Comment = ({
                 {!editTextActive && <Text style={{ color: '#6C65F6' }}>{total_comment_likes} likes</Text> }
                 <Spacer />
                 { !editTextActive && 
-                    <ButtonIcon style={{ borderColor: comment_liked ? '#6C65F6' : '#6c65f64f' }} onPress={() => query_like_comment()}>
-                        <AntDesign name='heart' color={ comment_liked ? '#6C65F6' : '#6c65f64f' } size={15} />
+                    <ButtonIcon style={{ borderColor: commentIsLiked ? '#6C65F6' : '#6c65f64f' }} onPress={() => handleLikeComment()}>
+                        <AntDesign name='heart' color={ commentIsLiked ? '#6C65F6' : '#6c65f64f' } size={15} />
                     </ButtonIcon>
                 }
                 { editTextActive && 
@@ -234,7 +251,7 @@ const Timestamp = styled.Text`
 `;
 
 const CommentText = styled.Text`
-    line-height: 19px;
+    line-height: 20px;
     margin-top: 10px;
 `;
 

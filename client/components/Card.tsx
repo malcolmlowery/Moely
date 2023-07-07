@@ -1,8 +1,9 @@
 import styled from 'styled-components/native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { Alert, Keyboard } from 'react-native';
 import { CardI } from '../types/card.interface';
+import Animated, { useAnimatedStyle, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 
 const Card = ({
     post_id,
@@ -10,7 +11,7 @@ const Card = ({
     username,
     profileImage,
     occupation,
-    timestamp,
+    created_at,
     text,
     post_liked,
     total_likes,
@@ -22,20 +23,27 @@ const Card = ({
     query_delete_post,
     query_report_post,
     query_hide_post,
+    query_create_comment,
+    navigatingTo,
+    create_comment_active,
 }: Partial<CardI>) => {
     const [showOptions, setShowOptions] = useState(false);
     const [editTextActive, setEditTextActive] = useState(false);
     const [editedPostText, setEditedPostText] = useState(null);
     const [showMoreText, setShowMoreText] = useState(false);
-    const [postIsLiked, setPostIsLiked] = useState(post_liked);
-
+    const [postIsLiked, setPostIsLiked] = useState(null);
+    
     const post_text = text.length > 380 && !showMoreText ? `${text.slice(0, 380)}... ` : text + ' ';
+
+    useEffect(() => {
+        setPostIsLiked(post_liked);
+    }, [post_liked]);
 
     const handleUpdatePost = async () => {
         await query_update_post(editedPostText)
             .then(({ error }) => {
                 if(!error) {
-                    setEditTextActive(false)
+                    setEditTextActive(false);
                     setEditedPostText(null);
                     setShowOptions(!showOptions);
                 };
@@ -70,7 +78,6 @@ const Card = ({
         setEditedPostText(text);
     };
 
-    const navigateToPost = () => navigate_to_post();
     const navigateToProfile = () => navigate_to_profile();
 
     const handleDeletePost = () => {
@@ -114,6 +121,29 @@ const Card = ({
             ],
         );
     };
+
+
+    const [createCommentActive, setCreateCommentActive] = useState(create_comment_active);
+    const [commentText, setCommentText] = useState('');
+
+    const handleCreateComment = async () => {
+        await query_create_comment(commentText)
+            .then(({ error }) => {
+                if(!error) {
+                    setCreateCommentActive(false);
+                    setCommentText('');
+                };
+            });
+    };
+    
+    const createCommentViewAnimes = useAnimatedStyle(() => {
+        return {
+            backgroundColor: '#fff',
+            height: createCommentActive ? withSpring(194, { stiffness: 99, damping: 15 }): 0,
+            overflow: 'hidden',
+            paddingTop: 16
+        };
+    });
     
     return(
         <Pressable onPress={() => Keyboard.dismiss()}>
@@ -128,7 +158,7 @@ const Card = ({
                                 <Username>{username}</Username>
                             </Pressable>
                             <Spacer />
-                            { !showOptions && <Timestamp>{timestamp}</Timestamp> }
+                            { !showOptions && <Timestamp>{created_at}</Timestamp> }
                             { showOptions && is_post_owner && 
                                 <>
                                     <TouchableOpacity style={{ marginRight: 18 }} onPress={() => handleDeletePost()}>
@@ -194,7 +224,7 @@ const Card = ({
                     <TouchableOpacity>
                         <Text style={{ color: '#6C65F6' }}>{total_likes} likes</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => navigateToPost()}>
+                    <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => navigate_to_post()}>
                         <Text style={{ color: '#969696' }}>{total_comments} comments</Text>
                     </TouchableOpacity>
 
@@ -203,7 +233,7 @@ const Card = ({
                     <ButtonGroup>
                         { !editTextActive &&
                             <>
-                                <ButtonIcon style={{ backgroundColor: '#363636' }} onPress={() => navigateToPost()}>
+                                <ButtonIcon style={{ backgroundColor: '#363636' }} onPress={() => setCreateCommentActive(!createCommentActive)}>
                                     <Ionicons name='ios-chatbubbles' color='#fff' size={17} />
                                 </ButtonIcon>
                                 <ButtonIcon style={{ backgroundColor: '#424242' }} onPress={() => handleLikePost()}>
@@ -227,6 +257,27 @@ const Card = ({
                         }
                     </ButtonGroup>
                 </Footer>
+
+                { createCommentActive &&
+                    <Animated.View style={createCommentViewAnimes}>
+                        <TextInput 
+                            style={{ height: 130, paddingTop: 14 }}
+                            multiline={true} 
+                            placeholder='What would you like to say?' 
+                            onChangeText={(value) => setCommentText(value)}
+                        />
+                        { commentText &&
+                            <CreateCommentButton onPress={() => handleCreateComment()}>
+                                <Text style={{ color: '#fff', fontSize: 15 }}>Reply to Post</Text>
+                            </CreateCommentButton>
+                        }
+                        { !commentText &&
+                            <CreateCommentButton style={{ backgroundColor: '#e7e7e7'  }}>
+                                <Text style={{ color: '#c7c7c7', fontSize: 15 }}>Reply to Post</Text>
+                            </CreateCommentButton>
+                        }
+                    </Animated.View>
+                }
             </Container>
         </Pressable>
     );
@@ -243,6 +294,7 @@ const Pressable = styled.Pressable``;
 
 const Container = styled.View`
     background-color: #fff;
+    flex-direction: column;
     margin-bottom: 3px;
     padding: 16px;
 `;
@@ -340,3 +392,12 @@ const TextInput = styled.TextInput`
 `;
 
 const TouchableOpacity = styled.TouchableOpacity``;
+
+const CreateCommentButton = styled.TouchableOpacity`
+    align-items: center;
+    background-color: #6C65F6;
+    border-radius: 12px;
+    min-width: 140px;
+    margin-top: 10px;
+    padding: 10px 32px;
+`;

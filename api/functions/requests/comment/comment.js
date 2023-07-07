@@ -73,7 +73,13 @@ exports.createComment = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
-        res.status(200).send({ message: 'Comment created!', comment: new_comment });
+        res.status(200).send({ 
+            message: 'Comment created!', 
+            comment: {
+                ...new_comment,
+                is_comment_owner: new_comment.owner.uid === local_uid ? true : false
+            },
+        });
 
     } catch(error) {
         res.status(500).send(error);

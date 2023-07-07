@@ -1,6 +1,6 @@
 import { api } from './api';
 
-const postSlice = api.injectEndpoints({
+export const postSlice = api.injectEndpoints({
     endpoints: (builder) => ({
 
         // Create Post Query
@@ -43,6 +43,16 @@ const postSlice = api.injectEndpoints({
                                 };
                             });
                             return { ...draft, posts: updatedPostData };
+                        })
+                    );
+
+                    dispatch(
+                        postSlice.util.updateQueryData('getPost', ({ post_id }), (draft) => {
+                            if(draft.post_id === post_id) {
+                                return { ...draft, text: data.text };
+                            } else {
+                                return post;
+                            };
                         })
                     );
                 } catch {};
@@ -99,6 +109,20 @@ const postSlice = api.injectEndpoints({
                             return { ...draft, posts: updatedPostData };
                         })
                     );
+                    
+                    dispatch(
+                        postSlice.util.updateQueryData('getPost', ({ post_id }), (draft) => {
+                            if(draft.post_id === post_id) {
+                                return { 
+                                    ...draft, 
+                                    post_liked: data.post_liked, 
+                                    total_likes:  data.post_liked ? draft.total_likes + 1 : draft.total_likes - 1
+                                };
+                            } else {
+                                return post;
+                            };
+                        })
+                    );
                 } catch {};
             },
         }),
@@ -149,10 +173,22 @@ const postSlice = api.injectEndpoints({
             },
         }),
 
+        // Query a Single Post
+        getPost: builder.query({
+            query: ({ post_id }) => ({
+                url: 'api-getPost',
+                method: 'GET',
+                params: { post_id }
+            }),
+            // keepUnusedDataFor: 3,
+        }),
+
         // Newsfeed Posts Queries
         getNewsfeedPosts: builder.query({
             query: () => 'api-getNewsfeedPosts'
         }),
+
+        // Newsfeed Posts Queries - Pagination
         getMoreNewsfeedPosts: builder.mutation({
             query: (last_post_id) => ({
                 url: 'api-getNewsfeedPosts',
@@ -187,6 +223,7 @@ export const {
     useLikePostMutation,
     useHidePostMutation,
     useReportPostMutation,
+    useGetPostQuery,
     useGetNewsfeedPostsQuery,
     useGetMoreNewsfeedPostsMutation,
 } = postSlice;

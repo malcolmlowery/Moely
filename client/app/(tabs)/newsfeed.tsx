@@ -39,10 +39,10 @@ const Newsfeed = () => {
     const [reportPostQuery, { isLoading: isReportingPost, error: errorReportingPost }] = useReportPostMutation();
     const [likePostQuery, { isLoading: likePostQueryActive }] = useLikePostMutation();
 
-    const { data: newsfeed_data, isLoading: isLoadingNewsfeedData, isFetching: isFetchingNewsfeedData, refetch: refetchNewsfeedData } = useGetNewsfeedPostsQuery();
+    const { data: newsfeed_data, isLoading: isLoadingNewsfeedData, isFetching: isFetchingNewsfeedData, isError: errorLoadingNewfeedPost, refetch: refetchNewsfeedData } = useGetNewsfeedPostsQuery();
     const [getMoreNewsfeedPosts, { isLoading: isLoadingMoreNewsfeedData }] = useGetMoreNewsfeedPostsMutation();
     const [createCommentQuery, {isLoading: isLoadingComment, isError: errorLoadingComment }] = useCreateCommentMutation();
-    
+
     if( 
         errorCreatingPost ||
         errorUpdatingPost ||
@@ -73,7 +73,7 @@ const Newsfeed = () => {
                 refreshing={isFetchingNewsfeedData}
                 onEndReached={() => {
                     if(!isLoadingNewsfeedData && newsfeed_data?.last_post_id !== 'end_of_list') {
-                        if(!isLoadingMoreNewsfeedData) {
+                        if(!isLoadingMoreNewsfeedData && !errorLoadingNewfeedPost && newsfeed_data?.posts > 0) {
                             getMoreNewsfeedPosts({ last_post_id: newsfeed_data?.last_post_id });
                         };
                     };
@@ -112,7 +112,7 @@ const Newsfeed = () => {
                             post_id={post_id}
                             is_post_owner={is_post_owner}
                             username={owner.username}
-                            profileImage={owner.profileImage}
+                            profileImage={owner.profile_image}
                             occupation={owner.occupation}
                             created_at={timestamp}
                             text={text}
@@ -121,14 +121,14 @@ const Newsfeed = () => {
                             total_comments={total_comments}
                             navigate_to_post={() => router.push({ 
                                 pathname: `home/post/${post_id}`, 
-                                params: { post_id },
+                                params: { post_id, other_user_uid: owner.uid },
                             })}
                             navigate_to_profile={() => router.push({
                                 pathname: `home/profile/${owner.uid}`,
                                 params: { other_user_uid: owner.uid }
                             })}
                             query_update_post={(updatedText) => !isUpdatingPost && updatePostQuery({ post_id, text: updatedText })}
-                            query_like_post={(value) => !likePostQueryActive && likePostQuery({ post_id, post_liked: value })}
+                            query_like_post={(value) => !likePostQueryActive && likePostQuery({ post_id, post_liked: value, user_profile_uid: owner.uid })}
                             query_delete_post={() => !isDeletingPost && deletPostQuery({ post_id })}
                             query_report_post={() => !isReportingPost && reportPostQuery({ post_id })}
                             query_hide_post={() => !isHidingPost && hidePostQuery({ post_id })}

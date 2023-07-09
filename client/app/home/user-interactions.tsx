@@ -1,38 +1,18 @@
 import styled from 'styled-components/native';
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import { InstantSearch } from 'react-instantsearch-hooks';
+import algoliasearch from 'algoliasearch';
+
+// Components
 import HeaderBackButton from '../../components/HeaderBackBtn';
 
-const follower_data = [
-    {
-        followed_on: '2 days ago',
-        owner: {
-            uid: 'kUSuHr8CP0hOPhhNxRbF',
-            username: 'Michael Jones',
-            profileImage: 'https://purple.com/sites/default/files/styles/small_1_1/public/2022-06/medical-disc-hero.jpg?itok=rjAqjVtN',
-            occupation: 'Registered Nurse'
-        },
-    },
-    {
-        followed_on: '2 days ago',
-        owner: {
-            uid: 'cji0we0iewfie2i0iimkds',
-            username: 'Cynthia Maddison',
-            profileImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBfLm-zj2JgN--o56LdquoouH05e2nQgJ7RQ&usqp=CAU',
-        },
-    },
-    {
-        followed_on: '5 days ago',
-        owner: {
-            uid: '79qdgubf32jfj3f3dfew',
-            username: 'Sally Vladdin',
-            profileImage: 'https://advantagemedicalprofessionals.com/wp-content/uploads/2021/02/about-img-1.jpg',
-            occupation: 'Doctor'
-        },
-    },
-];
+// RTK Query
+import { useFollowUserMutation, useGetFollowersQuery, useGetFollowingsQuery } from '../../services/endpoints/follow-interactions';
+
+const algoliaClient = algoliasearch('8O25WENF0H', '8e249ef35c4feb97ec2d6169ba1602b6');
 
 const UserInteractions = () => {
     const router = useRouter();
@@ -54,13 +34,15 @@ const UserInteractions = () => {
                 }} 
             />
             
-            <TabView 
-                renderTabBar={renderTabBar}
-                navigationState={{ index, routes }}
-                renderScene={renderScene}
-                onIndexChange={setIndex}
-                initialLayout={{ width: layout.width }}
-            />
+            <InstantSearch searchClient={algoliaClient}>
+                <TabView 
+                    renderTabBar={renderTabBar}
+                    navigationState={{ index, routes }}
+                    renderScene={renderScene}
+                    onIndexChange={setIndex}
+                    initialLayout={{ width: layout.width }}
+                />
+            </InstantSearch>
         </>
         
     );
@@ -82,30 +64,66 @@ const renderTabBar = (props) => (
 const FollowersTab = () => {
     const router = useRouter();
 
+    const { data: following_uids, refetch: refetchFollowingQuery } = useGetFollowingsQuery();
+    const { data: follower_uids, isLoading: isLoadingFollowerUids, refetch: refetchFollowerQuery } = useGetFollowersQuery();
+    const [followUserQuery, { isLoading: isLoadingFollowInteraction, isError: errorLoadingFollowInteraction }] = useFollowUserMutation();
+    
+    const [userResults, setUserResults] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleFollowUserInteraction = (uid) => {
+        if(!isLoadingFollowInteraction) {
+            followUserQuery({ profile_uid: uid });
+        };
+    };
+    
+    useEffect(() => {
+        if(!isLoadingFollowerUids || refreshing) {
+            algoliaClient.initIndex('dev_medrant_followers').getObjects(follower_uids)
+                .then(({ results }) => setUserResults(results));
+        };
+    }, [follower_uids, refreshing, isLoadingFollowInteraction]);
+
     return(
         <Container>
             <FlatList
                 style={{ marginBottom: 80 }}
-                data={follower_data}
+                refreshing={refreshing}
+                onRefresh={() => {
+                    setRefreshing(true)
+                    refetchFollowingQuery()
+                    refetchFollowerQuery().then(() => setRefreshing(false))
+                }}
+                data={userResults}
                 renderItem={({ item }) => {
-                    const {
-                        followed_on,
-                        owner
-                    } = item;
-                    
+                    const { owner } = item || {};
+                    const following_user = following_uids.find(following_uid => following_uid === item?.owner.uid)
                     return(
-                        <FollowItem onPress={() => router.push({ pathname: `home/profile/${owner.uid}` })}>
-                            <ProfileImage source={{ uri: owner.profileImage }} />
+                        <FollowItem onPress={() => router.push({
+                            pathname: `home/profile/${owner.uid}`,
+                            params: { other_user_uid: owner.uid }
+                        })}>
+                             { owner?.profile_image ?
+                                    <ProfileImage source={{ uri: owner.profile_image }} /> :
+                                    <ProfileImage source={require('../../assets/images/profile_image_placeholder_01.png')} />
+                                }
                             <FollowDetails>
-                                <Username>{owner.username}</Username>
-                                { owner.occupation && <Occupation>{owner.occupation}</Occupation> }
+                                <Username>{owner?.username}</Username>
+                                { owner?.occupation && <Occupation>{owner.occupation}</Occupation> }
                             </FollowDetails>
                             <Spacer />
-                            <FollowButton>
-                                <Text style={{ color: '#fff', fontWeight: '500' }}>Follow</Text>
-                            </FollowButton>
+                            {/* { following_user &&
+                                <FollowButton onPress={() => handleFollowUserInteraction(item?.owner.uid)}>
+                                    <Text style={{ color: '#fff', fontWeight: '500' }}>Unfollow</Text>
+                                </FollowButton>
+                            }
+                            { !following_user &&
+                                <FollowButton onPress={() => handleFollowUserInteraction(item?.owner.uid)}>
+                                    <Text style={{ color: '#fff', fontWeight: '500' }}>Follow</Text>
+                                </FollowButton>
+                            } */}
                         </FollowItem>
-                    )
+                    );
                 }}
             />
         </Container>
@@ -114,9 +132,69 @@ const FollowersTab = () => {
 
 const FollowingTab = () => {
     const router = useRouter();
+
+    const { data: follower_uids, refetch: refetchFollowerQuery } = useGetFollowersQuery();
+    const { data: following_uids, isLoading: isLoadingFollowingUids, refetch: refetchFollowingQuery } = useGetFollowingsQuery();
+    const [followUserQuery, { isLoading: isLoadingFollowInteraction, isError: errorLoadingFollowInteraction }] = useFollowUserMutation();
+
+    const [userResults, setUserResults] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleFollowUserInteraction = (uid) => {
+        if(!isLoadingFollowInteraction) {
+            followUserQuery({ profile_uid: uid });
+        };
+    };
+    
+    useEffect(() => {
+        if(!isLoadingFollowingUids || refreshing) {
+            algoliaClient.initIndex('dev_medrant_following').getObjects(following_uids)
+                .then(({ results }) => setUserResults(results));
+        };
+    }, [following_uids, refreshing, isLoadingFollowInteraction]);
+    
     return(
         <Container>
-            <Text>Following Tab</Text>
+            <FlatList
+                style={{ marginBottom: 80 }}
+                refreshing={refreshing}
+                onRefresh={() => {
+                    setRefreshing(true)
+                    refetchFollowerQuery()
+                    refetchFollowingQuery().then(() => setRefreshing(false))
+                }}
+                data={userResults}
+                renderItem={({ item }) => {
+                    const { owner } = item || {};
+                    const follower_user = follower_uids.find(follower_uid => follower_uid === item?.owner.uid)
+                    return(
+                        <FollowItem onPress={() => router.push({
+                            pathname: `home/profile/${owner.uid}`,
+                            params: { other_user_uid: owner.uid }
+                        })}>
+                             { owner?.profile_image ?
+                                    <ProfileImage source={{ uri: owner.profile_image }} /> :
+                                    <ProfileImage source={require('../../assets/images/profile_image_placeholder_01.png')} />
+                                }
+                            <FollowDetails>
+                                <Username>{owner?.username}</Username>
+                                { owner?.occupation && <Occupation>{owner.occupation}</Occupation> }
+                            </FollowDetails>
+                            <Spacer />
+                            {/* { follower_user &&
+                                <FollowButton onPress={() => handleFollowUserInteraction(item?.owner.uid)}>
+                                    <Text style={{ color: '#fff', fontWeight: '500' }}>Unfollow</Text>
+                                </FollowButton>
+                            }
+                            { !follower_user &&
+                                <FollowButton onPress={() => handleFollowUserInteraction(item?.owner.uid)}>
+                                    <Text style={{ color: '#fff', fontWeight: '500' }}>Follow</Text>
+                                </FollowButton>
+                            } */}
+                        </FollowItem>
+                    );
+                }}
+            />
         </Container>
     );
 };
@@ -150,8 +228,8 @@ const FollowDetails = styled.View`
 
 const ProfileImage = styled.Image`
     border-radius: 20px;
-    height: 35px;
-    width: 35px;
+    height: 40px;
+    width: 40px;
 `;
 
 const Username = styled.Text`

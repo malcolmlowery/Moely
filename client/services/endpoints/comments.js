@@ -1,16 +1,17 @@
 import { api } from './api';
 import { postSlice } from './post';
+import { userProfileSlice } from './user-profile';
 
 const commentSlice = api.injectEndpoints({
     endpoints: (builder) => ({
         // Create Comment Query
         createComment: builder.mutation({
-            query: ({ post_id, text }) => ({
+            query: ({ post_id, text,  }) => ({
                 url: 'api-createComment',
                 method: 'POST',
                 body: { post_id, text },
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(
@@ -35,6 +36,19 @@ const commentSlice = api.injectEndpoints({
     
                     dispatch(
                         postSlice.util.updateQueryData('getNewsfeedPosts', undefined, (draft) => {
+                            const updatedNewsfeedData = draft.posts.map(post => {
+                                if(post.post_id === post_id) {
+                                    return { ...post, total_comments: post.total_comments + 1 };
+                                } else {
+                                    return post;
+                                }
+                            });
+                            return { ...draft, posts: updatedNewsfeedData };
+                        })
+                    );
+
+                    dispatch(
+                        userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
                             const updatedNewsfeedData = draft.posts.map(post => {
                                 if(post.post_id === post_id) {
                                     return { ...post, total_comments: post.total_comments + 1 };
@@ -212,6 +226,7 @@ const commentSlice = api.injectEndpoints({
                 method: 'GET',
                 params: { post_id, last_comment_id },
             }),
+            providesTags: ['Post-Details']
         }),
 
         // Post Comments Queries - Pagination
@@ -221,6 +236,7 @@ const commentSlice = api.injectEndpoints({
                 method: 'GET',
                 params: { post_id, last_comment_id },
             }),
+            providesTags: ['Post-Details'],
             async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
                 try {
                     const { data } = await queryFulfilled;

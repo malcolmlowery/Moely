@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { Alert, Keyboard } from 'react-native';
 import { CardI } from '../types/card.interface';
-import Animated, { useAnimatedStyle, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 const Card = ({
     post_id,
@@ -150,7 +150,10 @@ const Card = ({
             <Container>
                 <Header>
                     <Pressable onPress={() => navigateToProfile()}>
-                        <ProfileImage source={{ uri: profileImage ? profileImage : 'https://img.freepik.com/premium-vector/stethoscope-icon-flat-style-heart-diagnostic-vector-illustration-isolated-background-medicine-sign-business-concept_157943-866.jpg?w=2000' }} />
+                        { profileImage ?
+                            <ProfileImage source={{ uri: profileImage }} /> :
+                            <ProfileImage source={require('../assets/images/profile_image_placeholder_01.png')} />
+                        }
                     </Pressable>
                     <HeaderRight>
                         <HeaderTop>

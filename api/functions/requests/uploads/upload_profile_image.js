@@ -137,8 +137,9 @@ exports.uploadProfileImage = async (req, res) => {
 
                 resolve();
             })
-        }).then(() => {
-            res.status(200).send({ message: 'Profile successfully updated!' });
+        }).then(async () => {
+            const profile_image = (await getAuth().getUser(local_uid)).photoURL;
+            res.status(200).send({ message: 'Profile successfully updated!', profile_image, uid: local_uid });
         })
         .catch((error) => {
             res.status(500).send({ error });

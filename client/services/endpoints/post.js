@@ -1,4 +1,5 @@
 import { api } from './api';
+import { userProfileSlice } from './user-profile';
 
 export const postSlice = api.injectEndpoints({
     endpoints: (builder) => ({
@@ -19,6 +20,13 @@ export const postSlice = api.injectEndpoints({
                             return updatedNewsfeedData;
                         })
                     );
+                    
+                    dispatch(
+                        userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid: data.post.owner.uid }), (draft) => {
+                            const updatedNewsfeedData = {...draft, posts: [data.post].concat(draft.posts)};
+                            return updatedNewsfeedData;
+                        })
+                    );
                 } catch {};
             },
         }),
@@ -30,7 +38,7 @@ export const postSlice = api.injectEndpoints({
                 method: 'PUT',
                 body: { post_id, text },
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(
@@ -55,6 +63,21 @@ export const postSlice = api.injectEndpoints({
                             };
                         })
                     );
+                    
+                    if(user_profile_uid === data.uid) {
+                        dispatch(
+                            userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
+                                const updatedPostData = draft.posts.map(post => {
+                                    if(post.post_id === post_id) {
+                                        return ({ ...post, text: data.text });
+                                    } else {
+                                        return post;
+                                    };
+                                });
+                                return { ...draft, posts: updatedPostData };
+                            })
+                        );
+                    }
                 } catch {};
             },
         }),
@@ -66,10 +89,17 @@ export const postSlice = api.injectEndpoints({
                 method: 'DELETE',
                 body: { post_id },
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 const { data } = await queryFulfilled;
                     const patchResult = dispatch(
                         postSlice.util.updateQueryData('getNewsfeedPosts', undefined, (draft) => {
+                            const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
+                            return { ...draft, posts: updatedPostData };
+                        })
+                    );
+
+                    const userProfileNewsfeedResult = dispatch(
+                        userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
                             const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
                             return { ...draft, posts: updatedPostData };
                         })
@@ -79,6 +109,7 @@ export const postSlice = api.injectEndpoints({
                     await queryFulfilled;
                 } catch {
                     patchResult.undo();
+                    userProfileNewsfeedResult.undo()
                 };
             },
         }),
@@ -90,7 +121,7 @@ export const postSlice = api.injectEndpoints({
                 method: 'POST',
                 body: { post_id, post_liked }
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(
@@ -123,6 +154,25 @@ export const postSlice = api.injectEndpoints({
                             };
                         })
                     );
+
+                    // if(user_profile_uid === data.uid) {
+                        dispatch(
+                            userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
+                                const updatedPostData = draft.posts.map(post => {
+                                        if(post.post_id === post_id) {
+                                            return ({ 
+                                                ...post, 
+                                                post_liked: data.post_liked, 
+                                                total_likes:  data.post_liked ? post.total_likes + 1 : post.total_likes - 1
+                                            });
+                                        } else {
+                                            return post;
+                                        };
+                                });
+                                return { ...draft, posts: updatedPostData };
+                            })
+                        );
+                    // };
                 } catch {};
             },
         }),
@@ -134,9 +184,16 @@ export const postSlice = api.injectEndpoints({
                 method: 'POST',
                 body: { post_id },
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 const patchResult = dispatch(
                     postSlice.util.updateQueryData('getNewsfeedPosts', undefined, (draft) => {
+                        const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
+                        return { ...draft, posts: updatedPostData };
+                    })
+                );
+
+                const userProfileNewsfeedResult = dispatch(
+                    userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
                         const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
                         return { ...draft, posts: updatedPostData };
                     })
@@ -146,6 +203,7 @@ export const postSlice = api.injectEndpoints({
                     await queryFulfilled;
                 } catch {
                     patchResult.undo();
+                    userProfileNewsfeedResult.undo();
                 };
             },
         }),
@@ -157,9 +215,16 @@ export const postSlice = api.injectEndpoints({
                 method: 'POST',
                 body: { post_id },
             }),
-            async onQueryStarted({ post_id }, { queryFulfilled, dispatch }) {
+            async onQueryStarted({ post_id, user_profile_uid }, { queryFulfilled, dispatch }) {
                 const patchResult = dispatch(
                     postSlice.util.updateQueryData('getNewsfeedPosts', undefined, (draft) => {
+                        const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
+                        return { ...draft, posts: updatedPostData };
+                    })
+                );
+
+                const userProfileNewsfeedResult = dispatch(
+                    userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid }), (draft) => {
                         const updatedPostData = draft.posts.filter(post => post.post_id !== post_id);
                         return { ...draft, posts: updatedPostData };
                     })
@@ -169,6 +234,7 @@ export const postSlice = api.injectEndpoints({
                     await queryFulfilled;
                 } catch {
                     patchResult.undo();
+                    userProfileNewsfeedResult.undo();
                 };
             },
         }),
@@ -180,6 +246,7 @@ export const postSlice = api.injectEndpoints({
                 method: 'GET',
                 params: { post_id }
             }),
+            providesTags: ['Post-Details'],
             // keepUnusedDataFor: 3,
         }),
 
@@ -210,8 +277,7 @@ export const postSlice = api.injectEndpoints({
                     );
                 } catch {};
             },
-        })
-
+        }),
 
     }),
 });

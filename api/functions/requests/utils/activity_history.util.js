@@ -34,6 +34,7 @@ exports.userActivityHistory = async (args) => {
                 username,
                 profile_image,
                 occupation,
+                content_deleted: false,
             });
             
             batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true });
@@ -66,6 +67,7 @@ exports.userActivityHistory = async (args) => {
                 profile_image,
                 occupation,
                 text,
+                content_deleted: false,
             });
 
             return;
@@ -90,6 +92,7 @@ exports.userActivityHistory = async (args) => {
         if(doc_empty) {
             batch.create(new_activites_collection_doc, {
                 type: 'comment',
+                timestamp,
                 comment_id,
                 content_owner_uid: other_user_uid,
                 post_id_ref: post_id,
@@ -97,6 +100,7 @@ exports.userActivityHistory = async (args) => {
                 profile_image,
                 occupation,
                 text,
+                content_deleted: false,
             });
 
             batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true });
@@ -129,9 +133,11 @@ exports.userActivityHistory = async (args) => {
                 content_owner_uid: other_user_uid,
                 post_id_ref: post_id,
                 username,
+                timestamp,
                 profile_image,
                 occupation,
                 text,
+                content_deleted: false,
             });
 
             batch.set(user_activity_history_root_doc, { total_user_activities: FieldValue.increment(1) }, { merge: true })

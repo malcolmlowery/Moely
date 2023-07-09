@@ -35,8 +35,8 @@ import {
 
 const PostDetails = () => {
     const router = useRouter();
-    const { post_id, comment_id }: any = useSearchParams();
-    
+    const { post_id, comment_id, other_user_uid }: any = useSearchParams();
+    console.log(other_user_uid)
     const { data: post, isLoading: isLoadingPost, isError: errorLoadingPost, refetch: refetchPostData } = useGetPostQuery({ post_id });
     const [updatePostQuery, { isLoading: isUpdatingPost, error: errorUpdatingPost }] = useUpdatePostMutation();
     const [deletPostQuery, { isLoading: isDeletingPost, error: errorDeletingPost }] = useDeletPostMutation();
@@ -75,7 +75,7 @@ const PostDetails = () => {
                 refreshing={isLoadingPost}
                 onEndReached={() => {
                     if(!isLoadingCommentsData && comments_data?.last_comment_id !== 'end_of_list') {
-                        if(!isLoadingMoreCommentsData) {
+                        if(!isLoadingMoreCommentsData && comments_data.comments > 0) {
                             getMoreComments({ post_id: post.post_id, last_comment_id: comments_data?.last_comment_id });
                         };
                     };
@@ -104,7 +104,7 @@ const PostDetails = () => {
                                     post_id={post.post_id}
                                     is_post_owner={post.is_post_owner}
                                     username={post.owner.username}
-                                    profileImage={post.owner.profileImage}
+                                    profileImage={post.owner.profile_image}
                                     occupation={post.owner.occupation}
                                     created_at={timestamp}
                                     text={post.text}
@@ -119,12 +119,12 @@ const PostDetails = () => {
                                     navigatingTo='post'
                                     toggle_create_comment_active={() => setCommentOnPostActive(!commentOnPostActive)}
                                     create_comment_active={commentOnPostActive}
-                                    query_create_comment={(text) => !isCreatingComment && createCommentQuery({ post_id: post.post_id, text })}
+                                    query_create_comment={(text) => !isCreatingComment && createCommentQuery({ post_id: post.post_id, text, user_profile_uid: other_user_uid })}
                                     query_update_post={(updatedText) => !isUpdatingPost && updatePostQuery({ post_id, text: updatedText })}
-                                    query_like_post={(value) => !likePostQueryActive && likePostQuery({ post_id, post_liked: value })}
+                                    query_like_post={(value) => !likePostQueryActive && likePostQuery({ post_id, post_liked: value, user_profile_uid: other_user_uid })}
                                     query_delete_post={() => {
                                         if(!isDeletingPost) {
-                                            deletPostQuery({ post_id });
+                                            deletPostQuery({ post_id, user_profile_uid: other_user_uid });
                                             router.back(); 
                                         };
                                     }}
@@ -166,7 +166,7 @@ const PostDetails = () => {
                                     username={owner.username} 
                                     occupation={owner.occupation}
                                     timestamp={timestamp}
-                                    profile_image={owner.profileImage}
+                                    profile_image={owner.profile_image}
                                     is_comment_owner={is_comment_owner}
                                     text={text}
                                     comment_liked={comment_liked}

@@ -6,6 +6,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useHeaderHeight } from '@react-navigation/elements';
 import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import Lottie from 'lottie-react-native';
+import { useSegments } from 'expo-router';
 
 interface BottomSheetI {
     isCreatingPost: boolean,
@@ -15,17 +16,20 @@ interface BottomSheetI {
 };
 
 const BottomSheet = ({ createPostViewActive, dismissBottomSheet, isCreatingPost, query_create_post }: BottomSheetI) => {
+    const segments = useSegments();
+    
     const { height: screen_height } = useWindowDimensions();
     const header_height = useHeaderHeight();
-    const tabbar_height = useBottomTabBarHeight();
+    const tabbar_height = segments[1] === 'profile' || segments[1] === 'post' ? 0 : useBottomTabBarHeight();
+    
     const [keyboardData, setKeyboardData] = useState({ keyboard_height: 0, keyboard_active: false });
-
     const [text, setText] = useState('');
 
     const bottomSheetAnimes = useAnimatedStyle(() => {
         return {
             position: 'absolute',
             padding: 10,
+            paddingBottom: segments[1] === 'profile' && !keyboardData.keyboard_active ? 90 : 10,
             width: '100%',
             zIndex: 999,
             opacity: createPostViewActive ? withTiming(1) : withTiming(0),
@@ -49,6 +53,12 @@ const BottomSheet = ({ createPostViewActive, dismissBottomSheet, isCreatingPost,
     });
 
     useEffect(() => {
+        if(!createPostViewActive) {
+            setText('');
+        };
+    }, [createPostViewActive]);
+
+    useEffect(() => {
         const keyboard_will_show = Keyboard.addListener('keyboardWillShow', listener => {
             setKeyboardData({ keyboard_height: listener.endCoordinates.height, keyboard_active: true })
         });
@@ -62,13 +72,6 @@ const BottomSheet = ({ createPostViewActive, dismissBottomSheet, isCreatingPost,
             keyboard_will_hide.remove();
         };
     }, []);
-
-
-    useEffect(() => {
-        if(!createPostViewActive) {
-            setText('');
-        };
-    }, [createPostViewActive]);
 
     const handleCreatePost = () => {
         if(text !== '') {

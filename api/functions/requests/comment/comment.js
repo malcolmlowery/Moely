@@ -53,6 +53,7 @@ exports.createComment = async (req, res) => {
             comment_id: user_info_doc.id,
             text: post_owner.text,
             post_id,
+            timestamp,
             other_user_uid: post_owner.owner.uid, 
             username: post_owner.owner.username, 
             profile_image: post_owner.owner.profile_image,

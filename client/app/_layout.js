@@ -16,7 +16,7 @@ const Layout = () => {
         segments[1] === 'user-activity-history' ||
         segments[1] === 'terms-and-conditions' ||
         segments[1] === 'privacy' ||
-        segments[1] === 'acciount' && true;
+        segments[1] === 'account' && true;
         
     const renderHeaderLeft = () => {
         const current_tab_bar_name = segments[1];
@@ -36,7 +36,7 @@ const Layout = () => {
         headerRight: () => {
             return(
                 <>
-                    { !inSettingsTabs &&
+                    { segments[1] === 'newsfeed' &&
                         <>
                             <Pressable>
                                 <Avatar source={{ uri: 'https://www.barrowneuro.org/wp-content/uploads/Remiel-Gonda-OR-Nurse-e1566942309945.jpg' }} />

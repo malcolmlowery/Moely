@@ -76,19 +76,19 @@ exports.followUser = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
 
-            res.status(200).send({ message: 'User unfollowed.', following_user: false });
+            res.status(200).send({ message: 'User unfollowed.', following_user: false, uid: user_profile.uid });
         };
 
         if(user_doc_empty) {
-            const user_in_followers_subcollection = followers_collection_doc.collection('users').doc();
-            const user_in_followings_subcollection = following_collection_doc.collection('users').doc();
-
+            const user_in_followers_subcollection = followers_collection_doc.collection('users').doc(local_uid);
+            const user_in_followings_subcollection = following_collection_doc.collection('users').doc(profile_uid);
+ 
             batch.set(followers_collection_doc, { 
                     user_uids: FieldValue.arrayUnion(local_uid), 
                     total_followers: FieldValue.increment(1),
                 }, { merge: true })
         
-            batch.create(user_in_followers_subcollection, { 
+            batch.create(user_in_followers_subcollection, {
                 followed_on: timestamp, 
                 owner: { uid: local_uid, username, profile_image, occupation } 
             });
@@ -132,8 +132,44 @@ exports.followUser = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
             
-            res.status(200).send({ message: `You are now following ${user_profile.username}`, following_user: true });
+            res.status(200).send({ message: `You are now following ${user_profile.username}`, following_user: true, uid: user_profile.uid });
         };
+
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
+exports.getFollowers = async (req, res) => {
+    const local_uid = res.locals.uid;
+
+    try {
+        const follower_uids = [];
+
+        await getFirestore().collection(`followers/${local_uid}/users`)
+            .get().then(snapshot => {
+                snapshot.forEach(doc => follower_uids.push(doc.data().owner.uid));
+            });
+
+        res.status(200).send(follower_uids);
+
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
+exports.getFollowing = async (req, res) => {
+    const local_uid = res.locals.uid;
+
+    try {
+        const following_uids = [];
+
+        await getFirestore().collection(`following/${local_uid}/users`)
+            .get().then(snapshot => {
+                snapshot.forEach(doc => following_uids.push(doc.data().owner.uid));
+            });
+            
+        res.status(200).send(following_uids);
 
     } catch(error) {
         res.status(500).send(error);

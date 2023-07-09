@@ -61,7 +61,7 @@ exports.updatePost = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('There was an error updating your post. Please try again.') });
 
-        res.status(200).send({ message: 'Post updated!', text, post_edited: true });
+        res.status(200).send({ message: 'Post updated!', text, post_edited: true, uid: local_uid });
             
     } catch(error) {
         res.status(500).send(error);
@@ -126,7 +126,7 @@ exports.deletePost = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-        res.status(200).send({ message: 'Post deleted!' });
+        res.status(200).send({ message: 'Post deleted!', uid: local_uid });
             
     } catch(error) {
         res.status(500).send(error);

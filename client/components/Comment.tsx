@@ -131,7 +131,10 @@ const Comment = ({
         <Container>
             <Header>
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => navigate_to_profile()}>
-                <ProfileImage source={{ uri: profile_image ? profile_image : 'https://img.freepik.com/premium-vector/stethoscope-icon-flat-style-heart-diagnostic-vector-illustration-isolated-background-medicine-sign-business-concept_157943-866.jpg?w=2000' }} />
+                    { profile_image ?
+                        <ProfileImage source={{ uri: profile_image }} /> :
+                        <ProfileImage source={require('../assets/images/profile_image_placeholder_01.png')} />
+                    }
                     <UserInfo>
                         <Username>{username}</Username>
                         { occupation && <Occupation>{occupation}</Occupation>}

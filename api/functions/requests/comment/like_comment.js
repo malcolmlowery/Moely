@@ -62,6 +62,7 @@ exports.likeComment = async (req, res) => {
                 profile_image: comment_data.owner.profile_image,
                 comment_id,
                 post_id,
+                timestamp,
                 text: comment_data.text,
                 occupation: comment_data.owner.occupation,
             }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
@@ -105,6 +106,7 @@ exports.likeComment = async (req, res) => {
                 type: 'comment_like', 
                 post_id,
                 comment_id,
+                timestamp,
                 other_user_uid: comment_data?.owner.uid, 
             }).catch(() => { throw Error('An internal error occurred. Please try again') });
             

@@ -69,7 +69,7 @@ exports.likePost = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-            res.status(200).send({ message: 'Post liked!', post_liked: true });
+            res.status(200).send({ message: 'Post liked!', post_liked: true, uid: post_owner.owner.uid });
             return;
         } 
         
@@ -98,7 +98,7 @@ exports.likePost = async (req, res) => {
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
 
-            res.status(200).send({ message: 'Post unliked!', post_liked: false  });
+            res.status(200).send({ message: 'Post unliked!', post_liked: false, uid: post_owner.owner.uid });
             return;
         }
 

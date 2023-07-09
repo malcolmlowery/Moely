@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const fb_config = {
     apiKey: "AIzaSyDeW3haYqbABaXG6vB-ObOEvbLHurlJRVI",
@@ -13,5 +14,7 @@ const fb_config = {
   
 const app = initializeApp(fb_config);
 const firestore = getFirestore(app);
+// const functions = getFunctions(app);
 
-connectFirestoreEmulator(firestore, 'localhost', 8080);
+// connectFunctionsEmulator(functions, '0.0.0.0', 5001)
+connectFirestoreEmulator(firestore, '127.0.0.1', 5001);

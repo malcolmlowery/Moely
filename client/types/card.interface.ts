@@ -26,6 +26,6 @@ export interface CardI {
 interface PostOwnerI {
     uid: string,
     username: string,
-    profileImage: string | null,
+    profile_image: string | null,
     occupation: string | null,
 }

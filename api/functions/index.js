@@ -1,6 +1,6 @@
 const { initializeApp, getFirestore } = require('./modules');
 const { authGuard } = require('./middleware/auth-guard');
-const { createUser, getUserProfile, updateUserProfile } = require('./requests/user/user');
+const { createUser, getUserProfile, updateUserProfile, getAccountInfo } = require('./requests/user/user');
 const { uploadProfileImage, deleteProfileImage } = require('./requests/uploads/upload_profile_image');
 const { uploadCoverPhoto, deleteCoverPhoto } = require('./requests/uploads/upload_cover_photo');
 const { createPost, getPost, updatePost, deletePost } = require('./requests/post/post');
@@ -11,10 +11,11 @@ const { createComment, updateComment, deleteComment } = require('./requests/comm
 const { likeComment } = require('./requests/comment/like_comment');
 const { hideComment } = require('./requests/comment/hide_comment');
 const { reportComment } = require('./requests/comment/report_comment');
-const { followUser } = require('./requests/user_interactions/follow_user');
+const { followUser, getFollowers, getFollowing } = require('./requests/user_interactions/follow_user');
 const { getNewsfeedPosts } = require('./requests/post/posts');
 const { getPostComments } = require('./requests/comment/comments');
 const { getUserProfileNewsfeed } = require('./requests/post/profile_posts');
+const { getUserActivityHistory } = require('./requests/user/user_activity_history');
 
 initializeApp();
 getFirestore().settings({ ignoreUndefinedProperties: true })
@@ -24,6 +25,7 @@ exports.api = {
     getUserProfile: authGuard(getUserProfile),
     getUserProfileNewsfeed: authGuard(getUserProfileNewsfeed),
     updateUserProfile: authGuard(updateUserProfile),
+    getAccountInfo: authGuard(getAccountInfo),
 
     uploadProfileImage: authGuard(uploadProfileImage),
     deleteProfileImage: authGuard(deleteProfileImage),
@@ -50,4 +52,8 @@ exports.api = {
     reportComment: authGuard(reportComment),
 
     followUser: authGuard(followUser),
+    getFollowers: authGuard(getFollowers),
+    getFollowing: authGuard(getFollowing),
+
+    getUserActivityHistory: authGuard(getUserActivityHistory),
 };

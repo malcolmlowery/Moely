@@ -19,17 +19,61 @@ exports.createUser = functions.https.onRequest(async (req, res) => {
 });
 
 exports.getUserProfile = async (req, res) => {
+    const local_uid = res.locals.uid;
     const { user_profile_uid } = req.query;
 
     try {
 
-        const { username, profile_image, cover_photo, location, occupation, about_me } = await getFirestore().collection('users').doc(user_profile_uid)
+        const is_following_user = await getFirestore().collection(`following/${local_uid}/users`)
+            .where('owner.uid', '==', user_profile_uid).get()
+            .then(snapshot => {
+                if(snapshot.empty) return false;
+                return true;
+            }).catch(() => { throw 'There was an error creating your profile. Please try again.' });
+
+        const {
+            uid,
+            username, 
+            profile_image, 
+            cover_photo, 
+            location, 
+            occupation, 
+            about_me,
+            important_to_me,
+            place_of_work
+        } = await getFirestore().collection('users').doc(user_profile_uid)
             .get().then(doc => doc.data())
             .catch(() => { throw 'There was an error creating your profile. Please try again.' });
 
-        const user = { username, profile_image, cover_photo, location, occupation, about_me };
+        const user = { 
+            following_user: is_following_user,
+            uid,
+            username, 
+            profile_image, 
+            cover_photo, 
+            location, 
+            occupation, 
+            about_me,
+            important_to_me,
+            place_of_work,
+        };
 
         res.status(200).send(user);
+
+    } catch(error) {
+        res.status(500).send(error);
+    };
+};
+
+exports.getAccountInfo = async (req, res) => {
+    const local_uid = res.locals.uid;
+
+    try {
+        const account_info = await getFirestore().collection('users').doc(local_uid)
+            .get().then(doc => doc.data())
+            .catch(() => { throw Error('There was an error updating your profile. Please try again.') });
+
+        res.status(200).send(account_info);
 
     } catch(error) {
         res.status(500).send(error);
@@ -118,8 +162,11 @@ exports.updateUserProfile = async (req, res) => {
         await getAuth().updateUser(local_uid, { displayName: username })
             .catch(error => { throw error });
 
+        const updated_user_info = await getFirestore().collection('users').doc(local_uid)
+            .get().then(doc => doc.data())
+            .catch(() => { throw Error('There was an error updating your profile. Please try again.') })
 
-        res.send({ message: 'Profile updated!' });
+        res.send(updated_user_info);
 
     } catch(error) {
         res.status(500).send(error);

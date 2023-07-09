@@ -21,9 +21,8 @@ exports.uploadCoverPhoto = async (req, res) => {
 
         return new Promise((resolve, reject) => {
             form.parse(req, async (err, fields, files) => {
-                const uid = fields.uid;
                 const file = files.cover_photo_image;
-
+                
                 if(!file) {
                     reject("No file to upload, please choose a image.")
                     return
@@ -64,8 +63,10 @@ exports.uploadCoverPhoto = async (req, res) => {
 
                 resolve();
             })
-        }).then(() => {
-            res.status(200).send({ message: 'Profile successfully updated!' });
+        }).then(async () => {
+            const cover_photo = await getFirestore().collection('users').doc(local_uid)
+                .get().then(doc => doc.data().cover_photo);
+            res.status(200).send({ message: 'Profile successfully updated!', cover_photo, uid: local_uid  });
         })
         .catch((error) => {
             res.status(500).send({ error });

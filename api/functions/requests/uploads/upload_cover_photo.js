@@ -10,7 +10,7 @@ const {
     vision,
 } = require('../../modules');
 
-const vision_client = new vision.ImageAnnotatorClient({ keyFilename: '/Users/malcolmlowery/Documents/MedRant/api/functions/credentials/fb-service-account.json' });
+const vision_client = new vision.ImageAnnotatorClient({ projectId: 'moely-68eee', keyFilename: require.resolve('../../credentials/fb-service-account.json') });
 
 exports.uploadCoverPhoto = async (req, res) => {
     const local_uid = res.locals.uid;

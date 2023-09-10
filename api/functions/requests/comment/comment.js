@@ -1,6 +1,8 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
+const { Expo } = require('expo-server-sdk');
+let expo = new Expo();
 
 exports.createComment = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -74,6 +76,26 @@ exports.createComment = async (req, res) => {
         await batch.commit()
             .catch(() => { throw Error('An internal error occurred. Please try again') });
 
+        if(post_owner.owner.uid !== local_uid) {
+            const { push_token } = await getFirestore().collection('users')
+                .doc(post_owner?.owner.uid).get().then(doc => doc.data());
+                
+            if(push_token) {
+                const { total_notifications } = await getFirestore().collection('notifications')
+                    .doc(post_owner?.owner.uid).get().then(doc => doc.data()); 
+
+                await expo.sendPushNotificationsAsync([
+                    {
+                        to: push_token,
+                        title: 'Moely',
+                        body: username + ' commented on your post!',
+                        data: { url: `home/post/${post_id}`, params: { notification_action: 'new_comment' } },
+                        badge: total_notifications,
+                    },
+                ]);
+            };
+        };
+        
         res.status(200).send({ 
             message: 'Comment created!', 
             comment: {

@@ -2,6 +2,8 @@ import styled from 'styled-components/native';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
+import Lottie from 'lottie-react-native';
+import * as Device from 'expo-device';
 
 interface CommentI {
     comment_id?: string,
@@ -38,11 +40,21 @@ const Comment = ({
     query_report_comment,
     query_hide_comment,
 }: CommentI) => {
+    const device_brand = Device.brand;
 
+    const [showMoreText, setShowMoreText] = useState(false);
     const [showOptionsActive, setShowOptionsActive] = useState(false);
     const [editTextActive, setEditTextActive] = useState(false);
     const [updatedText, setUpdatedText] = useState(null);
-    const [commentIsLiked, setCommentIstLiked] = useState(comment_liked)
+    const [commentIsLiked, setCommentIsLiked] = useState(null);
+    const [isUpdatingComment, setIsUpdatingComment] = useState(false);
+    const [isLikingComment, setIsLikingComment] = useState(false);
+
+    const comment_text = text.length > 380 && !showMoreText ? `${text.slice(0, 380)}... ` : text + ' ';
+
+    useEffect(() => {
+        setCommentIsLiked(comment_liked)
+    }, [comment_liked])
 
     const toggleShowOptions = () => {
         setUpdatedText(null);
@@ -66,8 +78,12 @@ const Comment = ({
     };
 
     const handleUpdateComment = async () => {
+        setIsUpdatingComment(true);
         await query_update_comment(updatedText)
             .then(({ error }) => {
+
+                setIsUpdatingComment(false);
+
                 if(!error) {
                     setEditTextActive(false);
                     setUpdatedText(null);
@@ -77,13 +93,11 @@ const Comment = ({
     };
 
     const handleLikeComment = () => {
-        setCommentIstLiked(!commentIsLiked)
+        setIsLikingComment(true);
+        setCommentIsLiked(!commentIsLiked)
         query_like_comment(!commentIsLiked)
+            .then(() => setIsLikingComment(false))
     };
-
-    useEffect(() => {
-        setCommentIstLiked(comment_liked)
-    }, [comment_liked])
 
     const handleDeleteComment = () => {
         Alert.alert(
@@ -170,35 +184,72 @@ const Comment = ({
                     </TouchableOpacity>
                 }
             </Header>
-            { !editTextActive && <CommentText>{text}</CommentText> }
+
+            { !editTextActive && 
+                <Pressable onPress={() => setShowMoreText(!showMoreText)}>
+                        {/* <Body> */}
+                            { !editTextActive &&
+                                <CommentText>
+                                    {comment_text}
+                                    {text.length > 380 &&
+                                        <TouchableOpacity onPress={() => setShowMoreText(!showMoreText)}>
+                                            <Text style={{ color: '#4f8fee', fontSize: 13 }}>
+                                                {showMoreText ? 'show less' : 'show more'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    }
+                                </CommentText>
+                            }
+                        {/* </Body> */}
+                </Pressable>
+            }
+
             { editTextActive && 
                 <TextInput
+                    style={{ paddingTop: device_brand === 'Apple' ? 8 : 18  }}
+                    maxLength={800}
                     multiline={true}
                     onChangeText={(value) => setUpdatedText(value)}
+                    textAlignVertical='top'
                     value={updatedText}
                 />
             }
+
             <Footer>
-                {!editTextActive && <Text style={{ color: '#6C65F6' }}>{total_comment_likes} likes</Text> }
-                <Spacer />
                 { !editTextActive && 
-                    <ButtonIcon style={{ borderColor: commentIsLiked ? '#6C65F6' : '#6c65f64f' }} onPress={() => handleLikeComment()}>
+                    <>
+                        <Text style={{ color: '#6C65F6' }}>{total_comment_likes} likes</Text> 
+                        <Spacer />
+                    </>
+                }
+
+
+                { !editTextActive && 
+                    <ButtonIcon style={{ borderColor: commentIsLiked ? '#6C65F6' : '#6c65f64f' }} onPress={() => !isLikingComment && handleLikeComment()}>
                         <AntDesign name='heart' color={ commentIsLiked ? '#6C65F6' : '#6c65f64f' } size={15} />
                     </ButtonIcon>
                 }
-                { editTextActive && 
+
+                { editTextActive && !isUpdatingComment && 
                     <>
                         { updatedText === text &&
                             <UpdateCommentButton style={{ backgroundColor: '#363636' }} onPress={() => handleCancelUpdate()}>
-                                <Text style={{ color: '#fff', fontSize: 15 }}>Cancel</Text>
+                                <Text style={{ color: '#fff', fontSize: 13 }}>Cancel</Text>
                             </UpdateCommentButton>
                         }
                         { updatedText !== text &&
-                            <UpdateCommentButton onPress={() => handleUpdateComment()}>
-                                <Text style={{ color: '#fff', fontSize: 15 }}>Update Post</Text>
+                            <UpdateCommentButton onPress={() => !isUpdatingComment && handleUpdateComment()}>
+                                <Text style={{ color: '#fff', fontSize: 13 }}>Update Post</Text>
                             </UpdateCommentButton>
                         }
                     </>
+                }
+
+                { isUpdatingComment &&
+                    <UpdateCommentButton style={{ backgroundColor: '#363636', flexDirection: 'row', flex: 1, justifyContent: 'center', minWidth: '100%' }}>
+                        <ButtonText style={{ fontSize: 13, fontWeight: '600', left: 3 }}>Please wait...</ButtonText>
+                        { device_brand === 'Apple' && <Lottie autoPlay style={{ height: 35, right: 5, top: -3, width: 35 }} source={require('../assets/animations/loading_anime_white_01.json')} /> }
+                    </UpdateCommentButton>
                 }
             </Footer>
         </Container>
@@ -289,10 +340,20 @@ const TextInput = styled.TextInput`
 const UpdateCommentButton = styled.TouchableOpacity`
     align-items: center;
     background-color: #6C65F6;
-    border-radius: 12px;
-    min-width: 140px;
+    border-radius: 10px;
+    flex: 1;
     overflow: hidden;
-    padding: 7px 32px;
+    padding: 12px 32px;
 `;
 
 const TouchableOpacity = styled.TouchableOpacity``;
+
+const ButtonText = styled.Text`
+    color: #fff;
+    font-weight: 500;
+    font-size: 14px;
+`;
+
+const Pressable = styled.Pressable`
+    margin-top: 6px;
+`;

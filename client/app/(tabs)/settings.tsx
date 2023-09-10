@@ -1,6 +1,9 @@
 import styled from 'styled-components/native';
+import SkeletonLoader from '../../components/Skeleton-Loader';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import TextTicker from 'react-native-text-ticker';
 import { useGetUserSettingsInfoQuery } from '../../services/endpoints/user_settings_info';
 
 const Settings = () => {
@@ -9,18 +12,46 @@ const Settings = () => {
 
     return(
         <>
+            { isLoadingUserSettingsData && <SkeletonLoader type='settings' />}
             { !isLoadingUserSettingsData &&
                  <>
-                    <Stack screenOptions={{ title: 'test' }} />
+                    <Stack screenOptions={{ title: '' }} />
                     <ScrollView>
-                        <UserInfo>
+                        <UserInfo style={{ overflow: 'hidden' }}>
                             { user_settings_data.profile_image ?
                                 <ProfileImage source={{ uri: user_settings_data.profile_image }} /> :
                                 <ProfileImage source={require('../../assets/images/profile_image_placeholder_01.png')} />
                             }
                             <View>
-                                <Username>{user_settings_data.username}</Username>
-                                { user_settings_data.occupation && <Occupation>{user_settings_data.occupation}</Occupation> }
+                                { user_settings_data.username.length > 30 ?
+                                    <View>
+                                        <LinearGradient 
+                                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)', '#000']}
+                                            start={{ x: 0, y: 1 }}
+                                            end={{ x: 1, y: 1 }} 
+                                            style={{ height: 30, left: 0, position: 'absolute', right: 0, zIndex: 1000 }} />
+                                            <TextTicker
+                                                style={{ fontSize: 24 }}
+                                                duration={user_settings_data.username.length > 80 ? 3000 : 12000}
+                                                loop
+                                                bounce
+                                                repeatSpacer={50}
+                                                marqueeDelay={1000}
+                                                >
+                                                <Username>{user_settings_data.username}</Username> 
+                                            </TextTicker>
+                                    </View> :
+                                    <Username>{user_settings_data.username}</Username>
+                                }
+                                {/* <Username>{user_settings_data.username}</Username> */}
+                                { user_settings_data.occupation &&
+                                    <>
+                                        { user_settings_data.occupation?.length > 50 ?
+                                            <Occupation>{user_settings_data.occupation.slice(0,24).trim()}...</Occupation>:
+                                            <Occupation>{user_settings_data.occupation}</Occupation>  
+                                        }
+                                    </>
+                                }
                                 <TouchableOpacity onPress={() => router.push('home/edit-profile')}>
                                     <Text style={{ fontSize: 15 }}>Edit Profile</Text>
                                 </TouchableOpacity>
@@ -43,11 +74,11 @@ const Settings = () => {
                                 <ListItemText>Account Settings</ListItemText>
                                 <Ionicons name='person-circle-sharp' color='#1f1f1f' size={19} />
                             </ListItem>
-                            <ListItem onPress={() => router.push('home/privacy')}>
-                                <ListItemText>Privacy</ListItemText>
+                            <ListItem onPress={() => router.push('privacy-policy')}>
+                                <ListItemText>Privacy Policy</ListItemText>
                                 <Ionicons name='lock-closed' color='#1f1f1f' size={19} />
                             </ListItem>
-                            <ListItem style={{ borderBottomWidth: 0 }} onPress={() => router.push('home/terms-and-conditions')}>
+                            <ListItem style={{ borderBottomWidth: 0 }} onPress={() => router.push('terms-conditions')}>
                                 <ListItemText>Terms and Condition</ListItemText>
                                 <Ionicons name='contract' color='#1f1f1f' size={19} />
                             </ListItem>

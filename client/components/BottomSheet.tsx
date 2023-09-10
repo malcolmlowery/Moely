@@ -100,7 +100,7 @@ const BottomSheet = ({ createPostViewActive, dismissBottomSheet, isCreatingPost,
 
                         <ActionItems>
                             <TouchableOpacity style={{ backgroundColor: '#f34a4a' }} onPress={() => dismissBottomSheet()}>
-                                <ButtonText>Cancel</ButtonText>
+                                <ButtonText>Close</ButtonText>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => handleCreatePost()}>
                                 { !isCreatingPost && <ButtonText>Create Post</ButtonText> }

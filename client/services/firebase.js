@@ -1,20 +1,56 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  connectAuthEmulator,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  getAuth,
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  onSnapshot, 
+  where, 
+  query, 
+  collection, 
+  getDoc,
+  orderBy,
+  connectFirestoreEmulator,
+} from 'firebase/firestore';
 
-const fb_config = {
-    apiKey: "AIzaSyDeW3haYqbABaXG6vB-ObOEvbLHurlJRVI",
-    authDomain: "medrant-baa93.firebaseapp.com",
-    projectId: "medrant-baa93",
-    storageBucket: "medrant-baa93.appspot.com",
-    messagingSenderId: "713435796533",
-    appId: "1:713435796533:web:cfb936d97802266ff8cd7c",
-    measurementId: "G-SFDY2V0BQS"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAlmMFSQS0C9uR_MKSVkjxPpv673clBLlg",
+  authDomain: "moely-68eee.firebaseapp.com",
+  projectId: "moely-68eee",
+  storageBucket: "moely-68eee.appspot.com",
+  messagingSenderId: "146297418980",
+  appId: "1:146297418980:web:f333cb188b32a917fb68f1",
+  measurementId: "G-CM0TEYZR8D"
+};
   
-const app = initializeApp(fb_config);
-const firestore = getFirestore(app);
-// const functions = getFunctions(app);
+const app = initializeApp(firebaseConfig);
+const auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+const db = getFirestore(app);
 
-// connectFunctionsEmulator(functions, '0.0.0.0', 5001)
-connectFirestoreEmulator(firestore, '127.0.0.1', 5001);
+// connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+// connectFirestoreEmulator(db, 'localhost', 8080);
+
+export { 
+  auth, 
+  db,
+  doc,
+  getDoc,
+  onAuthStateChanged,
+  onSnapshot,
+  signInWithEmailAndPassword, 
+  sendPasswordResetEmail,
+  signOut,
+  where,
+  orderBy,
+  collection,
+  query,
+  getAuth,
+};

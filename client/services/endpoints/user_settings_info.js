@@ -4,6 +4,15 @@ import { userProfileSlice } from './user-profile';
 
 export const userSettingsInfoSlice = api.injectEndpoints({
     endpoints: (builder) => ({
+
+        createUser: builder.mutation({
+            query: (userInfo) => ({
+                url: 'api-createUser',
+                method: 'POST',
+                body: userInfo
+            })
+        }),
+
         getUserSettingsInfo: builder.query({
             query: () => ({
                 url: 'api-getAccountInfo',
@@ -39,7 +48,7 @@ export const userSettingsInfoSlice = api.injectEndpoints({
                     );
 
                     dispatch(
-                        userProfileSlice.util.updateQueryData('getUserProfileInfo', (uid), (draft) => {
+                        userProfileSlice.util.updateQueryData('getUserProfileInfo', ({ user_profile_uid: uid }), (draft) => {
                             return ({ ...draft, ...updated_user_info })
                         }),
                     );
@@ -47,7 +56,6 @@ export const userSettingsInfoSlice = api.injectEndpoints({
                     dispatch(
                         userProfileSlice.util.updateQueryData('getUserProfileNewfeedPosts', ({ user_profile_uid: uid }), (draft) => {
                             const updatedPostData = draft.posts.map(post => {
-                                console.log('TEST')
                                 return ({ ...post, owner: { ...post.owner, username, occupation } });
                             });
                             return { ...draft, posts: updatedPostData };
@@ -77,7 +85,7 @@ export const userSettingsInfoSlice = api.injectEndpoints({
             query: ({ profile_image }) => ({
                 url: 'api-uploadProfileImage',
                 method: 'POST',
-                body: profile_image
+                body: profile_image,
             }),
             invalidatesTags: ['Post-Details'],
             async onQueryStarted(_, { queryFulfilled, dispatch }) {
@@ -91,7 +99,7 @@ export const userSettingsInfoSlice = api.injectEndpoints({
                     );
 
                     dispatch(
-                        userProfileSlice.util.updateQueryData('getUserProfileInfo', (data.uid), (draft) => {
+                        userProfileSlice.util.updateQueryData('getUserProfileInfo', ({ user_profile_uid: data.uid }), (draft) => {
                             return ({ ...draft, profile_image: data.profile_image })
                         }),
                     );
@@ -141,7 +149,7 @@ export const userSettingsInfoSlice = api.injectEndpoints({
                     );
 
                     dispatch(
-                        userProfileSlice.util.updateQueryData('getUserProfileInfo', (data.uid), (draft) => {
+                        userProfileSlice.util.updateQueryData('getUserProfileInfo', ({ user_profile_uid: data.uid }), (draft) => {
                             return ({ ...draft, cover_photo: data.cover_photo })
                         }),
                     );
@@ -153,6 +161,7 @@ export const userSettingsInfoSlice = api.injectEndpoints({
 });
 
 export const { 
+    useCreateUserMutation,
     useGetUserSettingsInfoQuery,
     useUpdateUserSettingsMutation,
     useUploadProfileImageMutation,

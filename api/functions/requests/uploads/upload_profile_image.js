@@ -11,7 +11,7 @@ const {
     vision,
 } = require('../../modules');
 
-const vision_client = new vision.ImageAnnotatorClient({ keyFilename: '/Users/malcolmlowery/Documents/MedRant/api/functions/credentials/fb-service-account.json' });
+const vision_client = new vision.ImageAnnotatorClient({ projectId: 'moely-68eee', keyFilename: require.resolve('../../credentials/fb-service-account.json') });
 
 exports.uploadProfileImage = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -25,14 +25,14 @@ exports.uploadProfileImage = async (req, res) => {
                 const file = files.profile_image;
                 
                 if(!file) {
-                    reject("No file to upload, please choose a image.")
-                    return
+                    reject("No file to upload, please choose a image.");
+                    return;
                 };
 
                 const filePath = file.path;
                 const tmpFilePath = join(tmpdir(), `${image_name}.jpeg`);
-
-                const [result] = await vision_client.safeSearchDetection(filePath)
+                
+                const [result] = await vision_client.safeSearchDetection(filePath);
                 const image_detections = result.safeSearchAnnotation;
                 
                 if( image_detections.adult === 'LIKELY' || 
@@ -57,17 +57,17 @@ exports.uploadProfileImage = async (req, res) => {
                 await unlink(tmpFilePath, (error) => {
                     if(error) throw error
                 });
-
+                
                 const user = getFirestore().collection('users').doc(local_uid);
                 const user_in_subcollections = getFirestore().collectionGroup('users')
                     .where('owner.uid', '==', local_uid);
                 const user_in_liked_comments_subcollections = getFirestore().collectionGroup('liked_comments')
                     .where('owner.uid', '==', local_uid);
-                    const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
-                        .where('content_owner_uid', '==', local_uid);
+                const activity_in_user_activity_history_subcollection = getFirestore().collectionGroup('activities')
+                    .where('content_owner_uid', '==', local_uid);
                 const posts = getFirestore().collection('posts')
                     .where('owner.uid', '==', local_uid);
-
+                    
                 const user_exists = (await user.get()).exists
                 
                 const number_of_posts = await posts

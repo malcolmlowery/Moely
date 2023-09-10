@@ -1,11 +1,12 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
+const { Expo } = require('expo-server-sdk');
+let expo = new Expo();
 
 exports.likePost = async (req, res) => {
     const local_uid = res.locals.uid;
     const { post_id, post_liked } = req.body;
-    console.log({post_id, post_liked})
 
     try {
 
@@ -68,6 +69,26 @@ exports.likePost = async (req, res) => {
 
             await batch.commit()
                 .catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+            if(post_owner.owner.uid !== local_uid) {
+                const { push_token } = await getFirestore().collection('users')
+                    .doc(post_owner?.owner.uid).get().then(doc => doc.data());
+
+                if(push_token) {
+                    const { total_notifications } = await getFirestore().collection('notifications')
+                        .doc(post_owner?.owner.uid).get().then(doc => doc.data()); 
+
+                    await expo.sendPushNotificationsAsync([
+                        {
+                            to: push_token,
+                            title: 'Moely',
+                            body: username + ' likes your post!',
+                            data: { url: `home/post/${post_id}`, params: { notification_action: 'post_liked' } },
+                            badge: total_notifications,
+                        },
+                    ]);
+                };
+            };
 
             res.status(200).send({ message: 'Post liked!', post_liked: true, uid: post_owner.owner.uid });
             return;

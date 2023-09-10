@@ -1,3 +1,4 @@
+import { ALGOLIA_ID, ALGOLIA_API_KEY } from '@env';
 import styled from 'styled-components/native';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -12,7 +13,7 @@ import HeaderBackButton from '../../components/HeaderBackBtn';
 // RTK Query
 import { useFollowUserMutation, useGetFollowersQuery, useGetFollowingsQuery } from '../../services/endpoints/follow-interactions';
 
-const algoliaClient = algoliasearch('8O25WENF0H', '8e249ef35c4feb97ec2d6169ba1602b6');
+const algoliaClient = algoliasearch(ALGOLIA_ID, ALGOLIA_API_KEY);
 
 const UserInteractions = () => {
     const router = useRouter();
@@ -97,11 +98,10 @@ const FollowersTab = () => {
                 data={userResults}
                 renderItem={({ item }) => {
                     const { owner } = item || {};
-                    const following_user = following_uids.find(following_uid => following_uid === item?.owner.uid)
                     return(
                         <FollowItem onPress={() => router.push({
                             pathname: `home/profile/${owner.uid}`,
-                            params: { other_user_uid: owner.uid }
+                            params: { user_profile_uid: owner.uid }
                         })}>
                              { owner?.profile_image ?
                                     <ProfileImage source={{ uri: owner.profile_image }} /> :
@@ -166,11 +166,10 @@ const FollowingTab = () => {
                 data={userResults}
                 renderItem={({ item }) => {
                     const { owner } = item || {};
-                    const follower_user = follower_uids.find(follower_uid => follower_uid === item?.owner.uid)
                     return(
                         <FollowItem onPress={() => router.push({
                             pathname: `home/profile/${owner.uid}`,
-                            params: { other_user_uid: owner.uid }
+                            params: { user_profile_uid: owner.uid }
                         })}>
                              { owner?.profile_image ?
                                     <ProfileImage source={{ uri: owner.profile_image }} /> :

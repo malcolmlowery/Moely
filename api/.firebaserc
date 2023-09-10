@@ -4,8 +4,11 @@
   },
   "targets": {},
   "etags": {
-    "medrant-baa93": {
-      "extensionInstances": {}
+    "moely-68eee": {
+      "extensionInstances": {
+        "firestore-algolia-search-bqvr": "047aef890bb61c0dfd8878d5f36c27dfd98732ce1a3bca500fda8abe02f751aa",
+        "firestore-algolia-search-eguk": "05c78444eb1b7e9eb1515fc7a483fb3ce6f4225ec34cc8993ee505d83b4f9106"
+      }
     }
   }
 }

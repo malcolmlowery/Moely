@@ -13,7 +13,8 @@ export const followInteractionsSlice = api.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(
-                        userProfileSlice.util.updateQueryData('getUserProfileInfo', profile_uid, (draft) => {
+                        userProfileSlice.util.updateQueryData('getUserProfileInfo', ({ user_profile_uid: profile_uid }), (draft) => {
+                            console.log(1)
                             if(data.uid && profile_uid) {
                                 return ({ ...draft, following_user: data.following_user })
                             } else {

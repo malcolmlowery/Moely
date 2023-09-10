@@ -6,6 +6,20 @@ exports.getUserActivityHistory = async (req, res) => {
     
     try {
         const user_activities = [];
+        const blocked_user_uids = [];
+
+        await getFirestore().collection('blocked_users')
+            .doc(local_uid).get().then(doc => {
+                if(!doc.exists) return;
+                blocked_user_uids.push(...doc.data().user_uids);
+            });
+            
+        await getFirestore().collection('blocked_users')
+            .where('user_uids', 'array-contains', local_uid)
+            .get().then(snapshot => {
+                if(snapshot.empty) return;
+                snapshot.forEach(doc => blocked_user_uids.push(doc.id));
+            });
 
         if(!last_activity_id) {
 
@@ -21,7 +35,10 @@ exports.getUserActivityHistory = async (req, res) => {
                     };
                     
                     last_activity_id = snapshot.docs[snapshot.docs.length - 1].id
-                    snapshot.forEach(doc => user_activities.push(doc.data()));
+                    snapshot.forEach(doc => {
+                        const block_user_exists = blocked_user_uids.find((uid) => doc.data().content_owner_uid === uid);
+                        if(!block_user_exists) return user_activities.push(doc.data());
+                    });
 
                     res.status(200).send({ user_activities, last_activity_id: snapshot.size >= 3 ? last_activity_id : 'end_of_list' });
 
@@ -47,7 +64,10 @@ exports.getUserActivityHistory = async (req, res) => {
                     };
                     
                     last_activity_id = snapshot.docs[snapshot.docs.length - 1].id
-                    snapshot.forEach(doc => user_activities.push(doc.data()));
+                    snapshot.forEach(doc => {
+                        const block_user_exists = blocked_user_uids.find((uid) => doc.data().content_owner_uid === uid);
+                        if(!block_user_exists) return user_activities.push(doc.data());
+                    });
 
                     res.status(200).send({ user_activities, last_activity_id });
 

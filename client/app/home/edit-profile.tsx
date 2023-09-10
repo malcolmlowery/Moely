@@ -6,6 +6,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Ionicons } from '@expo/vector-icons';
 import Lottie from 'lottie-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Device from 'expo-device';
 import HeaderBackButton from '../../components/HeaderBackBtn';
 
 // RTK Query
@@ -17,6 +18,8 @@ import {
 } from '../../services/endpoints/user_settings_info';
 
 const EditProfile = () => {
+    const device_brand = Device.brand;
+
     const router = useRouter();
     const { data: user_settings_data, isLoading: isLoadingUserSettingsData, isFetching: isFetchingUserSettingsData, isError: errorLoadingUserSettingsData, refetch: refetchUserSettingsData } = useGetUserSettingsInfoQuery();
     const [updateUserSettings, { isLoading: isLoadingUpdatedUserSettings, isError: errorUpdatingUserSettings }] = useUpdateUserSettingsMutation();
@@ -107,9 +110,14 @@ const EditProfile = () => {
         if(updatedUserProfileInfo.profileImage) {
             console.log(updatedUserProfileInfo.profileImage_formdata )
             uploadProfileImage({ profile_image: updatedUserProfileInfo.profileImage_formdata })
-                .then(({ error }: any) => {
+                .then(({ data, error }: any) => {
+                    if(data.warning) {
+                        return alert(data.message);
+                    }
+
                     if(!error) {
                         setUpdatedUserProfileInfo(prevState => ({ ...prevState, profileImage: undefined, profileImage_formdata: undefined }))
+                        return;
                     }
                 });
         };
@@ -117,7 +125,11 @@ const EditProfile = () => {
         if(updatedUserProfileInfo.wallpaper) {
             console.log(updatedUserProfileInfo.wallpaper_formdata)
             uploadCoverPhoto({ cover_photo_image: updatedUserProfileInfo.wallpaper_formdata })
-                .then(({ error }: any) => {
+                .then(({ data, error }: any) => {
+                    if(data.warning) {
+                        return alert(data.message);
+                    }
+
                     if(!error) {
                         setUpdatedUserProfileInfo(prevState => ({ ...prevState, wallpaper: undefined, wallpaper_formdata: undefined }))
                     }
@@ -179,26 +191,35 @@ const EditProfile = () => {
                     />
                     
                     <KeyboardAwareScrollView 
-                        extraHeight={100}
+                        extraHeight={120}
                         style={{ 
                             flex: 1, 
                             padding: 16, 
                             overflow: 'visible'
                         }}>
         
-                        <UserInfo style={{ height: !user_settings_data.occupation ? 280 : 298 }}>
+                        <UserInfo>
                             <WallpaperContainer>
-                                <TouchableOpacity style={{ bottom: 16, position: 'absolute', right: 20, zIndex: 100 }} onPress={() => handlePressImageButton()}>
+                                <TouchableOpacity style={{ top: 16, position: 'absolute', right: 20, zIndex: 2000 }} onPress={() => handlePressImageButton()}>
                                     <Ionicons name='ios-images' color='#fff' size={29} />
                                 </TouchableOpacity>
                                 { updatedUserProfileInfo.wallpaper &&
-                                    <TouchableOpacity style={{ top: 16, position: 'absolute', right: 20, zIndex: 100 }} onPress={() => setUpdatedUserProfileInfo(prevState => ({ ...prevState, wallpaper: undefined }))}>
+                                    <TouchableOpacity style={{ top: 16, position: 'absolute', left: 20, zIndex: 2000 }} onPress={() => setUpdatedUserProfileInfo(prevState => ({ ...prevState, wallpaper: undefined }))}>
                                         <Ionicons name='trash' color='#ef4a4a' size={29} />
                                     </TouchableOpacity>
                                 }
-                                <Wallpaper source={{ uri: 
+                                { !updatedUserProfileInfo.wallpaper && !user_settings_data.cover_photo &&
+                                    <Wallpaper source={require('../../assets/images/wallpaper_placeholder_01.png')} />
+                                }
+                                { updatedUserProfileInfo.wallpaper &&
+                                    <Wallpaper source={{  uri: updatedUserProfileInfo.wallpaper }} />
+                                }
+                                { user_settings_data.cover_photo && !updatedUserProfileInfo.wallpaper &&
+                                    <Wallpaper source={{  uri: user_settings_data.cover_photo }} />
+                                }
+                                {/* <Wallpaper source={{ uri: 
                                     updatedUserProfileInfo.wallpaper ? updatedUserProfileInfo.wallpaper : 
-                                    user_settings_data.cover_photo ? user_settings_data.cover_photo : 'https://verlag.oeaw.ac.at/assets/images/video-placeholder.jpg' }} />
+                                    user_settings_data.cover_photo ? user_settings_data.cover_photo : 'https://verlag.oeaw.ac.at/assets/images/video-placeholder.jpg' }} /> */}
                             </WallpaperContainer>
                             <UserMeta>
                                 <ProfileImageView>
@@ -207,34 +228,55 @@ const EditProfile = () => {
                                             <Ionicons name='close' color='#fff' size={38} />
                                         </TouchableOpacity>
                                     }
-                                    <ProfileImage source={{ uri: updatedUserProfileInfo.profileImage ? updatedUserProfileInfo.profileImage : user_settings_data.profile_image }} />
+                                    { updatedUserProfileInfo.profileImage &&
+                                        <ProfileImage source={{ uri: updatedUserProfileInfo.profileImage ? updatedUserProfileInfo.profileImage : user_settings_data.profile_image }} />
+                                    }
+                                    { !updatedUserProfileInfo.profileImage && user_settings_data.profile_image &&
+                                        <ProfileImage source={{ uri: updatedUserProfileInfo.profileImage ? updatedUserProfileInfo.profileImage : user_settings_data.profile_image }} />
+                                    }
+                                    { !updatedUserProfileInfo.profileImage && !user_settings_data.profile_image &&
+                                        <ProfileImage source={require('../../assets/images/profile_image_placeholder_01.png')} />
+                                    }
                                 </ProfileImageView>
+                            </UserMeta>
+
+                            <View>
                                 <Username>{user_settings_data.username}</Username>
                                 { user_settings_data.occupation && <Occupation>{user_settings_data.occupation}</Occupation>}
-                            </UserMeta>
+                            </View>
+
                         </UserInfo>
         
-                        <EditItemsGroup style={{ marginBottom: 80 }}>
+                        <EditItemsGroup style={{ flex: device_brand === 'Apple' ? 1 : 0, marginBottom: 80 }}>
         
                             <TextInputItem>
                                 <TextInputLabel>Full Name</TextInputLabel>
-                                <TextInput ref={fullname_ref} placeholder={user_settings_data.username} onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, username: value.length === 0 ? undefined : value }))} />
+                                <TextInput 
+                                    maxLength={78}
+                                    ref={fullname_ref} 
+                                    placeholder={user_settings_data.username} 
+                                    onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, username: value.length === 0 ? undefined : value }))} />
                             </TextInputItem>
         
                             <TextInputItem>
                                 <TextInputLabel>Occupation</TextInputLabel>
-                                <TextInput ref={occupation_ref} placeholder={user_settings_data.occupation} onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, occupation: value.length === 0 ? undefined : value }))} />
+                                <TextInput 
+                                    maxLength={70}
+                                    ref={occupation_ref} 
+                                    placeholder={user_settings_data.occupation} 
+                                    onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, occupation: value }))} />
                             </TextInputItem>
         
                             <TextInputItem>
                                 <TextInputLabel>About Me</TextInputLabel>
                                 <TextInput 
+                                    maxLength={1200}
                                     ref={about_me_ref}
                                     onFocus={() => !updatedAboutMeText && setUpdatedAboutMeText(user_settings_data.about_me)} 
                                     onBlur={() => updatedAboutMeText === user_settings_data.about_me && setUpdatedAboutMeText(null)} 
                                     onChangeText={(value) => {
                                         setUpdatedAboutMeText(value)
-                                        setUpdatedUserProfileInfo(prevState => ({ ...prevState, about_me: value.length === 0 ? undefined : value }))
+                                        setUpdatedUserProfileInfo(prevState => ({ ...prevState, about_me: value }))
                                     }}
                                     placeholder={about_me_shortener} 
                                     multiline={true} 
@@ -245,17 +287,29 @@ const EditProfile = () => {
         
                             <TextInputItem>
                                 <TextInputLabel>Location</TextInputLabel>
-                                <TextInput ref={location_ref} placeholder={user_settings_data.location} onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, location: value.length === 0 ? undefined : value }))} />
+                                <TextInput 
+                                    maxLength={100}
+                                    ref={location_ref} 
+                                    placeholder={user_settings_data.location} 
+                                    onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, location: value }))} />
                             </TextInputItem>
         
                             <TextInputItem>
                                 <TextInputLabel>Where do you work?</TextInputLabel>
-                                <TextInput ref={place_of_work_ref} placeholder={user_settings_data.place_of_work} onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, place_of_work: value.length === 0 ? undefined : value }))} />
+                                <TextInput 
+                                    maxLength={80}
+                                    ref={place_of_work_ref} 
+                                    placeholder={user_settings_data.place_of_work} 
+                                    onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, place_of_work: value }))} />
                             </TextInputItem>
         
                             <TextInputItem>
                                 <TextInputLabel>What is important to you?</TextInputLabel>
-                                <TextInput ref={important_to_me_ref} placeholder={user_settings_data.important_to_me} onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, important_to_me: value.length === 0 ? undefined : value }))} />
+                                <TextInput
+                                    maxLength={30}
+                                    ref={important_to_me_ref} 
+                                    placeholder={user_settings_data.important_to_me} 
+                                    onChangeText={(value) => setUpdatedUserProfileInfo(prevState => ({ ...prevState, important_to_me: value }))} />
                             </TextInputItem>
         
                             {   updatedUserProfileInfo.about_me !== undefined || 
@@ -267,20 +321,25 @@ const EditProfile = () => {
                                 updatedUserProfileInfo.profileImage !== undefined ||
                                 updatedUserProfileInfo.wallpaper !== undefined ?
                                 <>
-                                    { isLoadingUpdatedUserSettings || isLoadingUploadedProfileImage || isLoadingUploadedCoverPhoto ?
-                                        <PleaseWaitButton>
-                                            <ButtonText style={{ left: 4 }}>Please wait...</ButtonText>
-                                            <Lottie autoPlay style={{ height: 35, right: 4, top: -3, width: 35 }} source={require('../../assets/animations/loading_anime_white_01.json')} />
-                                        </PleaseWaitButton> :
-                                        <UpdateProfileButton onPress={() => handleUpdateUserProfile()}>
-                                            <Text style={{ color: '#fff', fontSize: 15 }}>Update Profile</Text>
-                                        </UpdateProfileButton> 
-                                    }
+                                   <SubmitButton onPress={() => !isLoadingUpdatedUserSettings && !isLoadingUploadedProfileImage && !isLoadingUploadedCoverPhoto && handleUpdateUserProfile()} style={{ backgroundColor: '#6C65F6' }}>
+                                        { !isLoadingUpdatedUserSettings && !isLoadingUploadedProfileImage && !isLoadingUploadedCoverPhoto ?
+                                             <Ionicons name='checkmark' color='#fff' size={32} /> :
+                                             <>
+                                                { device_brand === 'Apple' ? 
+                                                    <Lottie 
+                                                        autoPlay 
+                                                        style={{ height: 35, width: 35 }} 
+                                                        source={require('../../assets/animations/loading_anime_white_01.json')} /> :
+                                                    <Text>Wait</Text>
+                                                }
+                                             </>
+                                        }
+                                    </SubmitButton>
                                 </>
                                 :
-                                <UpdateProfileButton style={{ backgroundColor: '#e7e7e7' }}>
-                                    <Text style={{ color: '#c7c7c7', fontSize: 15 }}>Update Profile</Text>
-                                </UpdateProfileButton>
+                                <SubmitButton style={{ backgroundColor: '#e7e7e7' }}>
+                                    <Ionicons name='checkmark' color='#fff' size={32} />
+                                </SubmitButton>
                             }
         
                         </EditItemsGroup>
@@ -293,6 +352,15 @@ const EditProfile = () => {
 };
 
 export default EditProfile;
+
+const Text = styled.Text`
+    color: #fff;
+`;
+
+const View = styled.View`
+    margin-top: -40px;
+    padding-bottom: 20px;
+`;
 
 const WallpaperContainer = styled.View`
     background-color: #121212;
@@ -310,7 +378,6 @@ const UserInfo = styled.View`
     align-items: center;
     background-color: #fff;
     border-radius: 12px;
-    height: 296px;
     overflow: hidden;
 `;
 
@@ -337,26 +404,28 @@ const Username = styled.Text`
     color: #121212;
     font-size: 19px;
     font-weight: 600;
-    margin-top: 12px;
     margin-bottom: 4px;
+    padding: 0 10px;
+    text-align: center;
 `;
 
 const Occupation = styled.Text`
     color: #121212;
     font-size: 15px;
+    text-align: center;
 `;
 
 const EditItemsGroup = styled.View`
     background-color: #fff;
     border-radius: 12px;
-    flex: 1;
+    /* flex: 1; */
     margin-top: 16px;
     padding: 16px;
     padding-top: 20px;
 `;
 
 const TextInputItem = styled.View`
-    flex: 1;
+    /* flex: 1; */
     margin-bottom: 16px;
 `;
 
@@ -377,38 +446,15 @@ const TextInput = styled.TextInput`
     padding-left: 6px;
 `;
 
-const UpdateProfileButton = styled.TouchableOpacity`
-    align-items: center;
-    background-color: #6C65F6;
-    border-radius: 8px;
-    min-width: 140px;
-    margin-top: 16px;
-    padding: 12px 32px;
-    padding-bottom: 15px;
-`;
-
-const Text = styled.Text`
-    color: #121212;
-    font-weight: 500;
-    margin-top: 3px;
-`;
-
 const TouchableOpacity = styled.TouchableOpacity``;
 
-const ButtonText = styled.Text`
-    color: #fff;
-    font-weight: 500;
-    font-size: 15px;
-`;
-
-const PleaseWaitButton = styled.Pressable`
+const SubmitButton = styled.TouchableOpacity`
+    align-self: center;
     align-items: center;
-    background-color: #1f1f1f;
-    border-radius: 8px;
-    flex-direction: row;
+    background-color: #6C66F6;
+    border-radius: 100px;
+    height: 65px;
     justify-content: center;
-    min-width: 140px;
-    margin-top: 16px;
-    padding: 16px 32px;
-    padding-bottom: 15px;
+    margin: 30px 0;
+    width: 65px;
 `;

@@ -1,6 +1,8 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
+const { Expo } = require('expo-server-sdk');
+let expo = new Expo();
 
 exports.followUser = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -69,7 +71,7 @@ exports.followUser = async (req, res) => {
                     local_uid, 
                     notification_type: 'new_follower',
                     notification_owner_uid: profile_uid, 
-                    content: { ref_id: profile_uid },
+                    content: { ref_id: local_uid },
                 }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
             };
 
@@ -113,6 +115,7 @@ exports.followUser = async (req, res) => {
                 type: 'following',
                 timestamp,
                 profile_uid: user_profile.uid,
+                other_user_uid: user_profile.uid,
                 username: user_profile?.username,
                 profile_image: user_profile?.profile_image,
                 occupation: user_profile?.occupation,
@@ -125,13 +128,33 @@ exports.followUser = async (req, res) => {
                     local_uid, 
                     notification_type: 'new_follower',
                     notification_owner_uid: profile_uid, 
-                    content: { ref_id: profile_uid },
+                    content: { ref_id: local_uid },
                 }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
             };
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            if(profile_uid !== local_uid) {
+                const { push_token } = await getFirestore().collection('users')
+                    .doc(user_profile.uid).get().then(doc => doc.data());
             
+                const { total_notifications } = await getFirestore().collection('notifications')
+                    .doc(user_profile.uid).get().then(doc => doc.data()); 
+            
+                if(push_token) {
+                    await expo.sendPushNotificationsAsync([
+                        {
+                            to: push_token,
+                            title: 'Moely',
+                            body: username + ' started following you!',
+                            data: { url: `home/profile/${local_uid}`, params: { profile_uid: local_uid, notification_action: 'new_follower' } },
+                            badge: total_notifications,
+                        },
+                    ]);
+                };
+            };
+
             res.status(200).send({ message: `You are now following ${user_profile.username}`, following_user: true, uid: user_profile.uid });
         };
 

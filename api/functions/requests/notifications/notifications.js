@@ -168,7 +168,7 @@ exports.deleteNotificationEntry = async (args) => {
 
                 if(notification_doc.data().has_new_activity === true && most_recent_comments.length === 0) {
                     batch.set(notification_root_doc, { total_notifications: FieldValue.increment(-1) }, { merge: true });
-                };
+                }
         
                 if(most_recent_comments.length === 0) {
                     batch.delete(notification_doc.ref);
@@ -217,7 +217,7 @@ exports.deleteNotificationEntry = async (args) => {
                     
                 if(notification_doc.data().has_new_activity === true && most_recent_comments.length === 0) {
                     batch.set(notification_root_doc, { total_notifications: FieldValue.increment(-1) }, { merge: true });
-                };
+                }
                     
                 if(most_recent_comments.length === 0) {
                     batch.delete(notification_doc.ref)

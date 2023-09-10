@@ -30,7 +30,7 @@ exports.userActivityHistory = async (args) => {
             batch.create(new_activites_collection_doc, {
                 type: 'following',
                 timestamp,
-                uid: profile_uid,
+                content_owner_uid: other_user_uid,
                 username,
                 profile_image,
                 occupation,

@@ -1,6 +1,8 @@
 const { getFirestore, Timestamp, FieldValue } = require('../../modules');
 const { createNewNotification, deleteNotificationEntry } = require('../notifications/notifications');
 const { userActivityHistory } = require('../utils/activity_history.util');
+const { Expo } = require('expo-server-sdk');
+let expo = new Expo();
 
 exports.likeComment = async (req, res) => {
     const local_uid = res.locals.uid;
@@ -66,24 +68,53 @@ exports.likeComment = async (req, res) => {
                 text: comment_data.text,
                 occupation: comment_data.owner.occupation,
             }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
-            
-            if(comment_data.owner.uid !== local_uid) {
-                await createNewNotification({ 
-                    batch, 
-                    timestamp, 
-                    local_uid, 
-                    notification_type: 'comment_liked',
-                    notification_owner_uid: comment_data?.owner.uid, 
-                    content: { 
-                        ref_id: comment_id, 
-                        post_ref_id: post_id, 
-                        text: comment_data.text,
-                    },
-                }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+
+            const post_is_hidden =  await getFirestore().collection('hidden_posts')
+                .where('post_id_ref', '==', post_id)
+                .where('user_uids', 'array-contains', local_uid)
+                .get().then(snapshot => {
+                    if(snapshot.size === 0) return false;
+                    return true;
+                });
+
+            if(!post_is_hidden) {
+                if(comment_data.owner.uid !== local_uid) {
+                    await createNewNotification({ 
+                        batch, 
+                        timestamp, 
+                        local_uid, 
+                        notification_type: 'comment_liked',
+                        notification_owner_uid: comment_data?.owner.uid, 
+                        content: { 
+                            ref_id: post_id, 
+                            text: comment_data.text,
+                        },
+                    }).catch(() => { throw Error('There was an error deleting your post. Please try again.') });
+                };
             };
 
             await batch.commit()
                 .catch(() => { throw Error('An internal error occurred. Please try again') });
+
+            if(comment_data.owner.uid !== local_uid && !post_is_hidden) {
+                const { push_token } = await getFirestore().collection('users')
+                    .doc(comment_data.owner.uid).get().then(doc => doc.data());
+                    
+                const { total_notifications } = await getFirestore().collection('notifications')
+                    .doc(comment_data.owner.uid).get().then(doc => doc.data()); 
+
+                if(push_token) {
+                    await expo.sendPushNotificationsAsync([
+                        {
+                            to: push_token,
+                            title: 'Moely',
+                            body: username + ' likes your comment!',
+                            data: { url: `home/post/${post_id}`, params: { notification_action: 'comment_liked' } },
+                            badge: total_notifications,
+                        },
+                    ]);
+                };
+            };
 
             res.status(200).send({ message: 'Comment liked!', comment_liked: true });
         }

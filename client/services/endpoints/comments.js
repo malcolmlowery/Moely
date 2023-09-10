@@ -226,7 +226,7 @@ const commentSlice = api.injectEndpoints({
                 method: 'GET',
                 params: { post_id, last_comment_id },
             }),
-            providesTags: ['Post-Details']
+            providesTags: ['Post-Details', 'Post_Comments']
         }),
 
         // Post Comments Queries - Pagination

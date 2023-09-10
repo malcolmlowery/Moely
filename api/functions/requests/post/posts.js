@@ -14,6 +14,7 @@ exports.getNewsfeedPosts = async (req, res) => {
         const liked_posts = [];
         const hidden_posts = [];
         const reported_posts = [];
+        const blocked_user_uids = [];
 
         await getFirestore().collection('liked_posts')
             .where('user_uids', 'array-contains', local_uid)
@@ -33,6 +34,20 @@ exports.getNewsfeedPosts = async (req, res) => {
                 snapshot.forEach(doc => hidden_posts.push(doc.data().post_id_ref));
             });
 
+        await getFirestore().collection('blocked_users')
+            .doc(local_uid).get().then(doc => {
+                if(!doc.exists) return;
+                blocked_user_uids.push(doc.id)
+                blocked_user_uids.push(...doc.data().user_uids);
+            });
+
+        await getFirestore().collection('blocked_users')
+            .where('user_uids', 'array-contains', local_uid)
+            .get().then(snapshot => {
+                if(snapshot.empty) return;
+                snapshot.forEach(doc => blocked_user_uids.push(doc.id));
+            });
+
         await getFirestore().collection('posts')
             .where('flagged_post', '==', true)
             .get().then(snapshot => {
@@ -40,11 +55,8 @@ exports.getNewsfeedPosts = async (req, res) => {
             });
 
         if(!last_post_id) {
-            let post_query = getFirestore().collection('posts')
-                
-            hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
-            // reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
-
+            let post_query = getFirestore().collection('posts');
+            
             await post_query
                 .orderBy('created_at', 'desc')
                 .limit(13)
@@ -56,20 +68,26 @@ exports.getNewsfeedPosts = async (req, res) => {
                     };
                     
                     snapshot.forEach(doc => {
+                        const block_user_exists = blocked_user_uids.find((uid) => {
+                            if(doc.data().owner.uid === uid && doc.data().owner.uid !== local_uid) return uid;
+                        });
+                        const hidden_post_exists = hidden_posts.find((post_id) => doc.data().post_id === post_id);
                         const liked_post_exists = liked_posts.find((post_id) => doc.data().post_id === post_id);
 
-                        if(liked_post_exists) {
-                            posts.push({ 
-                                ...doc.data(), 
-                                post_liked: true, 
-                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
-                            });
-                        } else {
-                            posts.push({ 
-                                ...doc.data(), 
-                                post_liked: false, 
-                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
-                            });
+                        if(!hidden_post_exists && !block_user_exists) {
+                            if(liked_post_exists) {
+                                posts.push({ 
+                                    ...doc.data(), 
+                                    post_liked: true, 
+                                    is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                                });
+                            } else {
+                                posts.push({ 
+                                    ...doc.data(), 
+                                    post_liked: false, 
+                                    is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                                });
+                            };
                         };
                     });
                     
@@ -84,10 +102,7 @@ exports.getNewsfeedPosts = async (req, res) => {
                 return;
             };
 
-            let post_query = getFirestore().collection('posts')
-                
-            hidden_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', hidden_posts) : undefined;
-            // reported_posts.length > 0 ? post_query = post_query.where('post_id', 'not-in', reported_posts) : undefined;
+            let post_query = getFirestore().collection('posts');
         
             await post_query
                 .orderBy('created_at', 'desc')
@@ -101,20 +116,26 @@ exports.getNewsfeedPosts = async (req, res) => {
                     };
 
                     snapshot.forEach(doc => {
+                        const block_user_exists = blocked_user_uids.find((uid) => {
+                            if(doc.data().owner.uid === uid && doc.data().owner.uid !== local_uid) return uid;
+                        });
+                        const hidden_post_exists = hidden_posts.find((post_id) => doc.data().post_id === post_id);
                         const liked_post_exists = liked_posts.find((post_id) => doc.data().post_id === post_id);
 
-                        if(liked_post_exists) {
-                            posts.push({ 
-                                ...doc.data(), 
-                                post_liked: true, 
-                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
-                            });
-                        } else {
-                            posts.push({ 
-                                ...doc.data(), 
-                                post_liked: false, 
-                                is_post_owner: doc.data().owner.uid === local_uid ? true : false
-                            });
+                        if(!hidden_post_exists && !block_user_exists) {
+                            if(liked_post_exists) {
+                                posts.push({ 
+                                    ...doc.data(), 
+                                    post_liked: true, 
+                                    is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                                });
+                            } else {
+                                posts.push({ 
+                                    ...doc.data(), 
+                                    post_liked: false, 
+                                    is_post_owner: doc.data().owner.uid === local_uid ? true : false
+                                });
+                            };
                         };
                     });
                     

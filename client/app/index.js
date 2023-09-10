@@ -1,9 +1,13 @@
 import "expo-router/entry";
-import { Redirect } from 'expo-router';
+import 'react-native-reanimated'
+import 'react-native-gesture-handler';
+import { Redirect, SplashScreen } from 'expo-router';
+
+SplashScreen.preventAutoHideAsync();
 
 const Index = () => {
     return (
-        <Redirect href='/newsfeed' />
+        <></>
     );
 };
 
